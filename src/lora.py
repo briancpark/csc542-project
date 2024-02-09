@@ -4,8 +4,10 @@ import torch
 from torch import nn
 from transformers import AutoModelForCausalLM
 
+
 class LLaMAModelWithLoRA(AutoModelForCausalLM):
     """LLaMA model with LoRA (Low-Rank Adaptation)"""
+
     def __init__(self, config, rank=32):
         super(LLaMAModelWithLoRA, self).__init__(config)
         self.lora_rank = rank

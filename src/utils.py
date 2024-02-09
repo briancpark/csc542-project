@@ -1,4 +1,5 @@
 """Some utility functions"""
+
 import time
 import torch
 
@@ -11,9 +12,7 @@ from transformers import (
 device = torch.device(
     "mps"
     if torch.backends.mps.is_available()
-    else "cuda"
-    if torch.cuda.is_available()
-    else "cpu"
+    else "cuda" if torch.cuda.is_available() else "cpu"
 )
 
 # README: you should adjust based on your hardware

@@ -2,7 +2,7 @@ torch
 torchvision
 torchaudio
 transformers
-black
+black>=24.0
 pylint
 sentencepiece
 accelerate

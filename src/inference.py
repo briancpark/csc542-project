@@ -1,4 +1,5 @@
 """Here lies the inference code for the model"""
+
 from datasets import load_dataset
 from src.utils import device, load_model, torch_timer
 

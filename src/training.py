@@ -26,10 +26,10 @@ def finetuning(model_path, tokenizer_path, dataset_name):
         inputs = tokenizer(prompt + solution, return_tensors="pt").input_ids.to(device)
 
         labels = input_ids_tensor[
-            ..., 1:
+            inputs, 1:
         ].contiguous()  # Shift input_ids to the left for labels
         input_ids_tensor = input_ids_tensor[
-            ..., :-1
+            inputs, :-1
         ].contiguous()  # Remove the last token to match labels' size
 
         # Create a dataset and dataloader
@@ -39,7 +39,9 @@ def finetuning(model_path, tokenizer_path, dataset_name):
         )  # Adjust batch size as needed
 
         # Prepare optimizer
-        optimizer = AdamW(lora_model.parameters(), lr=5e-5)  # Adjust learning rate as needed
+        optimizer = AdamW(
+            lora_model.parameters(), lr=5e-5
+        )  # Adjust learning rate as needed
 
         lora_model.train()  # Set model to training mode
         # TODO: (bcp) Figure out how to train with LoRA
