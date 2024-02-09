@@ -1,0 +1,3 @@
+[MAIN]
+
+disable=parse-error, invalid-name, fixme, no-member, too-many-locals, super-with-arguments
