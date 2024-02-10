@@ -1,73 +1,75 @@
 """Here outlines the training (fine-tuning) process for the model"""
 
+import torch
 from datasets import load_dataset
-from torch.utils.data import DataLoader, TensorDataset
-from transformers import AdamW
+from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from src.utils import device, load_model
-from src.lora import LLaMAModelWithLoRA
 
 
-def finetuning(model_path, tokenizer_path, dataset_name):
+class HumanEvalHFDataSet(Dataset):
+    """Human Eval dataset for Hugging Face"""
+
+    def __init__(self, tokenizer, hf_dataset, block_size=512):
+        self.examples = []
+
+        # Iterate through the dataset and prepare the inputs and labels
+        for prompt, solution in zip(
+            hf_dataset["prompt"], hf_dataset["canonical_solution"]
+        ):
+            # Concatenate prompt and solution for the full context
+            full_text = prompt + solution
+            self.examples.append(
+                tokenizer(
+                    full_text,
+                    truncation=True,
+                    padding="max_length",  # Add this line
+                    max_length=block_size,
+                    return_tensors="pt",
+                )
+            )
+
+        self.block_size = block_size
+
+    def __len__(self):
+        return len(self.examples)
+
+    def __getitem__(self, idx):
+        # Here, each item is a dictionary of tensors
+        return {key: val.squeeze(0) for key, val in self.examples[idx].items()}
+
+
+def finetuning(model_path, tokenizer_path, dataset_name, epochs=10):
     """Training loop to fine-tune the model"""
-    tokenizer, model = load_model(model_path, tokenizer_path)
+    tokenizer, model = load_model(model_path, tokenizer_path, lora=True)
+
+    # Set padding token if it's not already set
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
 
     if dataset_name == "openai_humaneval":
-        dataset = load_dataset("openai_humaneval")
-        code_prompt = dataset["test"]["prompt"]
-        code_solution = dataset["test"]["completion"]
-        documents = zip(code_prompt, code_solution)
+        dataset = load_dataset("openai_humaneval", split="test")
     else:
         raise ValueError("Invalid dataset name.")
 
-    lora_model = LLaMAModelWithLoRA.from_pretrained(model)
+    dataset = HumanEvalHFDataSet(tokenizer, dataset)
 
-    for prompt, solution in documents:
-        inputs = tokenizer(prompt + solution, return_tensors="pt").input_ids.to(device)
+    data_loader = DataLoader(dataset, batch_size=2)
 
-        labels = input_ids_tensor[
-            inputs, 1:
-        ].contiguous()  # Shift input_ids to the left for labels
-        input_ids_tensor = input_ids_tensor[
-            inputs, :-1
-        ].contiguous()  # Remove the last token to match labels' size
+    optimizer = torch.optim.AdamW(model.parameters(), lr=5e-5)
 
-        # Create a dataset and dataloader
-        dataset = TensorDataset(input_ids_tensor, labels)
-        dataloader = DataLoader(
-            dataset, batch_size=8, shuffle=True
-        )  # Adjust batch size as needed
+    model.train()
+    for epoch in tqdm(range(epochs)):
+        for batch in data_loader:
+            # For LM, input and labels are usually the same
+            inputs = batch["input_ids"].to(device)
+            labels = batch["input_ids"].to(device)
 
-        # Prepare optimizer
-        optimizer = AdamW(
-            lora_model.parameters(), lr=5e-5
-        )  # Adjust learning rate as needed
+            outputs = model(inputs, labels=labels)
+            loss = outputs.loss
 
-        lora_model.train()  # Set model to training mode
-        # TODO: (bcp) Figure out how to train with LoRA
-        # Training loop
-        epochs = 3  # Adjust number of epochs as needed
-        for epoch in range(epochs):
-            epoch_loss = 0
-            for batch in tqdm(dataloader, desc=f"Epoch {epoch + 1}/{epochs}"):
-                batch_input_ids, batch_labels = batch
-                optimizer.zero_grad()  # Clear previous gradients
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-                outputs = lora_model(batch_input_ids, labels=batch_labels)
-                loss = (
-                    outputs.loss
-                )  # Assuming you're using a model that returns a loss when labels are provided
-
-                loss.backward()  # Backpropagate the loss
-                optimizer.step()  # Update the model's parameters
-
-                epoch_loss += loss.item() * batch_input_ids.size(
-                    0
-                )  # Aggregate the loss
-
-            # Calculate the average loss for the epoch
-            epoch_loss /= len(dataset)
-            print(f"Epoch {epoch + 1} finished with average loss: {epoch_loss:.4f}")
-
-        # After training, you might want to save your model
-        # model.save_pretrained("your_model_directory")
+            print(f"Epoch {epoch}, Loss: {loss.item()}")

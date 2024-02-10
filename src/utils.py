@@ -7,6 +7,7 @@ from transformers import (
     LlamaTokenizerFast,
     AutoModelForCausalLM,
 )
+from src.lora import LLaMAModelWithLoRA
 
 ### Always import device to register correct backend
 device = torch.device(
@@ -15,16 +16,18 @@ device = torch.device(
     else "cuda" if torch.cuda.is_available() else "cpu"
 )
 
-# README: you should adjust based on your hardware
-# NVIDIA GPUs Ampere uarch and after support BF16 (better precision than IEEE FP16)
-# M2 Apple Silicon and after also support BF16 (CPU and GPU)
-# Don't attempt to use FP16 on CPU, as it's not supported for GEMM
+"""
+README: You should adjust based on your hardware
+NVIDIA GPUs Ampere uarch and after support BF16 (better precision than IEEE FP16)
+M2 Apple Silicon and after also support BF16 (CPU and GPU)
+Don't attempt to use FP16 on CPU, as it's not supported for GEMM
+"""
 if device.type == "cuda":
     dtype = torch.bfloat16
 elif device.type == "mps":
     dtype = torch.float16
 else:
-    # default to FP32 on CPU, because PyTorch doesn't support HGEMM on any CPU architecture
+    # Default to FP32 on CPU, because PyTorch doesn't support HGEMM on any CPU architecture
     dtype = torch.float32
 
 
@@ -45,19 +48,32 @@ def torch_timer():
     return time.perf_counter()
 
 
-def load_model(model_path, tokenizer_path):
+def load_model(model_path, tokenizer_path, lora=False, rank=4):
     """Load the tokenizer and model"""
     tokenizer = LlamaTokenizerFast.from_pretrained(tokenizer_path)
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_path,
-        # load_in_4bit=True,
-        # load_in_8bit=True,
-        # bnb_4bit_compute_dtype=torch.bfloat16,
-        # attn_implementation="flash_attention_2",
-        torch_dtype=dtype,
-        device_map=device,
-    )
-    model.eval()
+    if lora:
+        model = LLaMAModelWithLoRA(
+            model_path,
+            rank=rank,
+            # load_in_4bit=True,
+            # load_in_8bit=True,
+            # bnb_4bit_compute_dtype=torch.bfloat16,
+            # attn_implementation="flash_attention_2",
+            torch_dtype=torch.float32,
+            device_map=device,
+        )
+
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            # load_in_4bit=True,
+            # load_in_8bit=True,
+            # bnb_4bit_compute_dtype=torch.bfloat16,
+            # attn_implementation="flash_attention_2",
+            torch_dtype=dtype,
+            device_map=device,
+        )
+        model.eval()
 
     return tokenizer, model
