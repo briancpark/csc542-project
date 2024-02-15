@@ -5,6 +5,7 @@ from datasets import load_dataset
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from src.utils import device, load_model
+from src.inference import autoregressive_sampling
 
 
 class HumanEvalHFDataSet(Dataset):
@@ -73,3 +74,15 @@ def finetuning(model_path, tokenizer_path, dataset_name, epochs=10):
             optimizer.step()
 
             print(f"Epoch {epoch}, Loss: {loss.item()}")
+
+    # run inference
+    model.eval()
+    prompt = """def fibonacci(n):
+        if n <= 0:
+            return 0
+        elif n == 1:
+            return 1
+    """
+    input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device)
+    output_ids = autoregressive_sampling(input_ids, model, 150)
+    print(tokenizer.decode(output_ids[0], skip_special_tokens=False))

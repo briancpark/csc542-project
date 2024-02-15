@@ -1,7 +1,8 @@
 """Here lies the inference code for the model"""
 
+import torch
 from datasets import load_dataset
-from src.utils import device, load_model, torch_timer
+from src.utils import device, load_model, torch_timer, sample, norm_logits
 
 
 def inference(model_path, tokenizer_path, prompt):
@@ -53,3 +54,24 @@ def dataset_inference(model_path, tokenizer_path, dataset_name):
         print(tokenizer.decode(output[0], skip_special_tokens=True))
         print(f"Time taken: {tok - tik:.3f} seconds")
         print(f"Tok/s: {output.shape[1] / (tok - tik):.3f}")
+
+
+def autoregressive_sampling(
+    input_ids,
+    model,
+    N,
+    temperature=1.0,
+):
+    """Autoregressive sampling from the model in inference mode"""
+    n = input_ids.shape[1]
+    T = input_ids.shape[1] + N
+
+    while n < T:
+        outputs = model(input_ids)
+        logits = outputs.logits[::, -1, :]
+        last_p = norm_logits(logits[-1:, :], temperature)
+        next_token_id = sample(last_p)
+        input_ids = torch.cat((input_ids, next_token_id), dim=-1)
+        n += 1
+
+    return input_ids

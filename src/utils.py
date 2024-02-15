@@ -3,6 +3,7 @@
 import time
 import torch
 
+from torch.nn import functional as F
 from transformers import (
     LlamaTokenizerFast,
     AutoModelForCausalLM,
@@ -77,3 +78,17 @@ def load_model(model_path, tokenizer_path, lora=False, rank=4):
         model.eval()
 
     return tokenizer, model
+
+
+def sample(p, determinsitic=False):
+    """Sample logits from a distribution or take the argmax"""
+    if determinsitic:
+        return torch.multinomial(p, 1)
+    return torch.argmax(p).unsqueeze(0).unsqueeze(0)
+
+
+def norm_logits(logits, temperature, eps=1e-10):
+    """Normalize the logits"""
+    logits = logits / (temperature + eps)
+    logits = F.softmax(logits, dim=1)
+    return logits
