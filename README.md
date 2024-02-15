@@ -1,6 +1,6 @@
 # CSC/ECE 542 Project
 
-Brian Park, Fanyuan (Sophie) Cheng, Tzu-Ching (Scott) Yeh
+Brian Park, Fangyuan (Sophie) Cheng, Tzu-Ching (Scott) Yeh
 
 This is the final course project for CSC/ECE 542: Neural Networks.
 
