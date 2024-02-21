@@ -1,0 +1,15 @@
+torch
+torchvision
+torchaudio
+transformers
+black>=24.0
+pylint
+sentencepiece
+accelerate
+datasets
+bitsandbytes
+matplotlib
+numpy
+pandas
+flash-attn; sys_platform == "x86_64"
+mlx; sys_platform == "darwin" # This is Apple Silicon only
