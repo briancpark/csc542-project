@@ -1,8 +1,7 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH -p max
-#SBATCH -w c[30, 31]
+#SBATCH -p a6000
 #SBATCH -J lora
 #SBATCH -o lora.o%j
 #SBATCH -e lora.e%j
@@ -10,4 +9,4 @@
 conda activate csc542
 cd /home/bcpark/csc542-project
 
-python3 main.py python3 main.py --finetuning
+python3 main.py --finetuning
