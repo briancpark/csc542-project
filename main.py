@@ -4,6 +4,7 @@ import argparse
 import torch
 from src.inference import inference, dataset_inference
 from src.training import finetuning
+from src.eda import eda
 
 
 if __name__ == "__main__":
@@ -29,17 +30,20 @@ if __name__ == "__main__":
     parser.add_argument("--inference", action="store_true")
     parser.add_argument("--test-dataset", action="store_true")
     parser.add_argument("--finetuning", action="store_true")
+    parser.add_argument("--eda", action="store_true")
     args = parser.parse_args()
 
     if args.inference and not args.test_dataset:
         # Disable Autograd when running inference
         with torch.no_grad():
             inference(args.model, args.tokenizer, args.prompt)
-    elif args.inference and args.test_dataset:
+    elif args.inference and args.test_datasset:
         # Disable Autograd when running inference
         with torch.no_grad():
             dataset_inference(args.model, args.tokenizer, args.dataset)
     elif args.finetuning:
         finetuning(args.model, args.tokenizer, args.dataset)
+    elif args.eda:
+        eda(args.model, args.tokenizer, args.dataset)
     else:
         raise ValueError("Invalid mode.")

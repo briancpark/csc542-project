@@ -26,4 +26,5 @@ python3 main.py -h  # for help
 python3 main.py --inference # for inference
 python3 main.py --inference --test-dataset # for testing the model
 python3 main.py --finetuning # for finetuning/training with LoRA
+python3 main.py --eda # for finetuning/training with LoRA
 ```
