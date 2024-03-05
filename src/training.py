@@ -71,6 +71,7 @@ class AlpacaHFDataSet(Dataset):
 
 def finetuning(model_path, tokenizer_path, dataset_name, epochs=1, batch_size=32):
     """Training loop to fine-tune the model"""
+    dataset_name = "iamtarun/code_instructions_120k_alpaca"
     tokenizer, model = load_model(model_path, tokenizer_path, lora=True)
 
     os.makedirs("models", exist_ok=True)
@@ -127,4 +128,4 @@ def finetuning(model_path, tokenizer_path, dataset_name, epochs=1, batch_size=32
     """
     input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device)
     output_ids = autoregressive_sampling(input_ids, model, 150)
-    print(tokenizer.decode(output_ids[0], skip_special_tokens=False))
+    print(tokenizer.decode(output_ids[0], skip_special_tokens=True))

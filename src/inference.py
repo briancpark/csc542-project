@@ -117,16 +117,16 @@ def evaluate_code(dataset, model=None, tokenizer=None):
             output = autoregressive_sampling(
                 inputs,
                 model,
-                N=150,
+                N=250,
                 temperature=1.0,
             )
             tok = torch_timer()
             output = output[:, instruction_prompt_idx:]
 
             solution = tokenizer.decode(output[0], skip_special_tokens=False)
-            print(solution)
-            print(f"Time taken: {tok - tik:.3f} seconds")
-            print(f"Tok/s: {output.shape[1] / (tok - tik):.3f}")
+            # print(solution)
+            tqdm.write(f"Time taken: {tok - tik:.3f} seconds")
+            tqdm.write(f"Tok/s: {output.shape[1] / (tok - tik):.3f}")
 
             code_solution = (
                 prompt + solution[instruction_prompt_idx + 1 + len(entry_point) :]
@@ -138,7 +138,8 @@ def evaluate_code(dataset, model=None, tokenizer=None):
             execute(code_solution, entry_point, test_function)
             passed += 1
         except Exception as e:
-            exception_cnt[e] = exception_cnt.get(e, 0) + 1
+            exception_type = type(e).__name__
+            exception_cnt[exception_type] = exception_cnt.get(exception_type, 0) + 1
             continue
 
     print(
