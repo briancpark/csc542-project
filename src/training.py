@@ -68,7 +68,7 @@ class AlpacaHFDataSet(Dataset):
         return {key: val.squeeze(0) for key, val in self.examples[idx].items()}
 
 
-def finetuning(model_path, tokenizer_path, dataset_name, epochs=10):
+def finetuning(model_path, tokenizer_path, dataset_name, epochs=10, batch_size=32):
     """Training loop to fine-tune the model"""
     dataset_name = "iamtarun/code_instructions_120k_alpaca"
     tokenizer, model = load_model(model_path, tokenizer_path, lora=True)
@@ -86,13 +86,15 @@ def finetuning(model_path, tokenizer_path, dataset_name, epochs=10):
     else:
         raise ValueError("Invalid dataset name.")
 
-    data_loader = DataLoader(dataset, batch_size=2)
+    data_loader = DataLoader(dataset, batch_size=batch_size)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=5e-5)
 
     model.train()
-    for epoch in tqdm(range(epochs), desc="Epochs"):
-        for batch in tqdm(data_loader, desc="Batches", leave=False):
+    pbar_epochs = tqdm(range(epochs), desc="Epochs")
+    for epoch in pbar_epochs:
+        pbar_batches = tqdm(data_loader, desc="Batches", leave=False)
+        for batch in pbar_batches:
             # For LM, input and labels are usually the same
             inputs = batch["input_ids"].to(device)
             labels = batch["input_ids"].to(device)
@@ -104,7 +106,12 @@ def finetuning(model_path, tokenizer_path, dataset_name, epochs=10):
             loss.backward()
             optimizer.step()
 
-            tqdm.write(f"Epoch {epoch}, Loss: {loss.item()}")
+            pbar_epochs.set_description(f"Epoch {epoch}")
+            pbar_batches.set_postfix({"Loss": loss.item()})
+        # checkpoint model
+        torch.save(model.state_dict(), f"models/codellama_{epoch}.pt")
+
+    torch.save(model.state_dict(), "models/codellama_final.pt")
 
     # run inference
     model.eval()
@@ -117,4 +124,3 @@ def finetuning(model_path, tokenizer_path, dataset_name, epochs=10):
     input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device)
     output_ids = autoregressive_sampling(input_ids, model, 150)
     print(tokenizer.decode(output_ids[0], skip_special_tokens=False))
-    
