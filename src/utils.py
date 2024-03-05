@@ -14,9 +14,7 @@ from src.lora import LLaMAModelWithLoRA
 device = torch.device(
     "mps"
     if torch.backends.mps.is_available()
-    else "cuda"
-    if torch.cuda.is_available()
-    else "cpu"
+    else "cuda" if torch.cuda.is_available() else "cpu"
 )
 
 """
@@ -26,7 +24,11 @@ M2 Apple Silicon and after also support BF16 (CPU and GPU)
 Don't attempt to use FP16 on CPU, as it's not supported for GEMM
 """
 if device.type == "cuda":
-    dtype = torch.bfloat16
+    # detect if GPU is capable of BF16
+    if torch.cuda.get_device_capability(0)[0] >= 8:
+        dtype = torch.bfloat16
+    else:
+        dtype = torch.float16
 elif device.type == "mps":
     dtype = torch.float16
 else:
@@ -51,9 +53,13 @@ def torch_timer():
     return time.perf_counter()
 
 
-def load_model(model_path, tokenizer_path, lora=False, rank=4):
+def load_model(
+    model_path, tokenizer_path, lora=False, rank=4, lora_checkpoint_path=None
+):
     """Load the tokenizer and model"""
     tokenizer = LlamaTokenizerFast.from_pretrained(tokenizer_path)
+    # TODO: REMOVE THIS AFTER DONE
+    lora_checkpoint_path = "models/codellama_0.pt"
 
     if lora:
         model = LLaMAModelWithLoRA(
@@ -66,6 +72,14 @@ def load_model(model_path, tokenizer_path, lora=False, rank=4):
             torch_dtype=torch.float32,
             device_map=device,
         )
+
+        if lora_checkpoint_path:
+            # When training on multi-GPU setup, the model needs to be reserialized
+            if device.type == "cuda":
+                model.load_state_dict(
+                    torch.load(lora_checkpoint_path, map_location="cpu")
+                )
+            model.to(device)
 
     else:
         model = AutoModelForCausalLM.from_pretrained(
@@ -94,3 +108,13 @@ def norm_logits(logits, temperature, eps=1e-10):
     logits = logits / (temperature + eps)
     logits = F.softmax(logits, dim=1)
     return logits
+
+
+def allocated_memory():
+    """Print the allocated memory in GB"""
+    if device.type == "mps":
+        return torch.mps.current_allocated_memory() / 1e9
+    elif device.type == "cuda":
+        return torch.cuda.memory_allocated() / 1e9
+    else:
+        return float("nan")

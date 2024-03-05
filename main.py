@@ -21,6 +21,8 @@ if __name__ == "__main__":
     parser.add_argument("--gamma", "-g", type=int, default=4)
     parser.add_argument("--n-tokens-to-generate", "-N", type=int, default=150)
     parser.add_argument("--dataset", type=str, default="openai_humaneval")
+    parser.add_argument("--test-dataset", type=str, default="openai_humaneval")
+    parser.add_argument("--train-dataset", type=str, default="openai_humaneval")
     parser.add_argument("--mode", type=str, default="sps")
     parser.add_argument(
         "--prompt",
@@ -28,19 +30,29 @@ if __name__ == "__main__":
         default="Question: Write the fibonacci sequence in Python. \nAnswer: def fibonacci(n):",
     )
     parser.add_argument("--inference", action="store_true")
-    parser.add_argument("--test-dataset", action="store_true")
     parser.add_argument("--finetuning", action="store_true")
     parser.add_argument("--eda", action="store_true")
+    parser.add_argument("--lora-checkpoint-path", type=str)
     args = parser.parse_args()
 
     if args.inference and not args.test_dataset:
         # Disable Autograd when running inference
         with torch.no_grad():
-            inference(args.model, args.tokenizer, args.prompt)
+            inference(
+                args.model,
+                args.tokenizer,
+                args.prompt,
+                lora_checkpoint_path=args.lora_checkpoint_path,
+            )
     elif args.inference and args.test_datasset:
         # Disable Autograd when running inference
         with torch.no_grad():
-            dataset_inference(args.model, args.tokenizer, args.dataset)
+            dataset_inference(
+                args.model,
+                args.tokenizer,
+                args.dataset,
+                lora_checkpoint_path=args.lora_checkpoint_path,
+            )
     elif args.finetuning:
         finetuning(args.model, args.tokenizer, args.dataset)
     elif args.eda:

@@ -22,9 +22,9 @@ pip install -r requirements.txt
 ## Running the Code
 
 ```sh
-python3 main.py -h  # for help
-python3 main.py --inference # for inference
-python3 main.py --inference --test-dataset # for testing the model
-python3 main.py --finetuning # for finetuning/training with LoRA
-python3 main.py --eda # for finetuning/training with LoRA
+python3 main.py -h                         # for help
+python3 main.py --inference                # for inference
+python3 main.py --inference --test-dataset # for running inference on the test dataset
+python3 main.py --finetuning               # for finetuning/training with LoRA
+python3 main.py --eda                      # for exploratory data analysis
 ```

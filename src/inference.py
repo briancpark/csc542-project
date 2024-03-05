@@ -5,30 +5,44 @@ from datasets import load_dataset
 from src.utils import device, load_model, torch_timer, sample, norm_logits
 
 
-def inference(model_path, tokenizer_path, prompt):
+def inference(model_path, tokenizer_path, prompt, lora_checkpoint_path=None):
     """Run inference on the model"""
-    tokenizer, model = load_model(model_path, tokenizer_path)
-
+    tokenizer, model = load_model(
+        model_path, tokenizer_path, lora=True, lora_checkpoint_path=lora_checkpoint_path
+    )
+    lora_checkpoint_path = "models/codellama_0.pt"
     # generate text
     inputs = tokenizer(prompt, return_tensors="pt").input_ids.to(device)
 
     # TODO: (bcp) Add support for all these parameters
-    tik = torch_timer()
-    output = model.generate(
-        inputs,
-        do_sample=False,
-        temperature=0.0,
-        max_length=150,
-        pad_token_id=tokenizer.eos_token_id,
-        num_return_sequences=1,
-    )
-    tok = torch_timer()
+    if lora_checkpoint_path:
+        tik = torch_timer()
+        output = autoregressive_sampling(
+            inputs,
+            model,
+            N=150,
+            temperature=0.0,
+        )
+        tok = torch_timer()
+    else:
+        tik = torch_timer()
+        output = model.generate(
+            inputs,
+            do_sample=False,
+            temperature=0.0,
+            max_length=150,
+            pad_token_id=tokenizer.eos_token_id,
+            num_return_sequences=1,
+        )
+        tok = torch_timer()
     print(tokenizer.decode(output[0], skip_special_tokens=True))
     print(f"Time taken: {tok - tik:.3f} seconds")
     print(f"Tok/s: {output.shape[1] / (tok - tik):.3f}")
 
 
-def dataset_inference(model_path, tokenizer_path, dataset_name):
+def dataset_inference(
+    model_path, tokenizer_path, dataset_name, lora_checkpoint_path=None
+):
     """Run inference on the model over a dataset"""
     tokenizer, model = load_model(model_path, tokenizer_path)
 

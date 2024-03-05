@@ -1,10 +1,11 @@
 """Here outlines the training (fine-tuning) process for the model"""
 
+import os
 import torch
 from datasets import load_dataset
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from src.utils import device, load_model
+from src.utils import device, load_model, allocated_memory
 from src.inference import autoregressive_sampling
 
 
@@ -43,7 +44,7 @@ class HumanEvalHFDataSet(Dataset):
 class AlpacaHFDataSet(Dataset):
     """Alpaca dataset for Hugging Face"""
 
-    def __init__(self, tokenizer, hf_dataset, block_size=512):
+    def __init__(self, tokenizer, hf_dataset, block_size=600):
         self.examples = []
 
         # Iterate through the dataset and prepare the inputs and labels
@@ -68,10 +69,12 @@ class AlpacaHFDataSet(Dataset):
         return {key: val.squeeze(0) for key, val in self.examples[idx].items()}
 
 
-def finetuning(model_path, tokenizer_path, dataset_name, epochs=10, batch_size=32):
+def finetuning(model_path, tokenizer_path, dataset_name, epochs=1, batch_size=32):
     """Training loop to fine-tune the model"""
     dataset_name = "iamtarun/code_instructions_120k_alpaca"
     tokenizer, model = load_model(model_path, tokenizer_path, lora=True)
+
+    os.makedirs("models", exist_ok=True)
 
     # Set padding token if it's not already set
     if tokenizer.pad_token is None:
@@ -107,7 +110,9 @@ def finetuning(model_path, tokenizer_path, dataset_name, epochs=10, batch_size=3
             optimizer.step()
 
             pbar_epochs.set_description(f"Epoch {epoch}")
-            pbar_batches.set_postfix({"Loss": loss.item()})
+            pbar_batches.set_postfix(
+                {"Loss": loss.item(), "Memory": allocated_memory()}
+            )
         # checkpoint model
         torch.save(model.state_dict(), f"models/codellama_{epoch}.pt")
 
