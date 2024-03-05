@@ -4,9 +4,7 @@
 from datasets import load_dataset
 from tqdm import tqdm
 from src.utils import device, load_model
-
-# from torch.utils.data import Dataset, DataLoader
-# from src.inference import autoregressive_sampling
+from src.inference import evaluate_code
 
 
 def get_token_counts(tokenizer, dataset):
@@ -38,14 +36,4 @@ def eda(model_path, tokenizer_path, dataset_path):
     ]:
         print(f"{token}: {count}")
 
-    for example in tqdm(dataset):
-        test_function = example["test"]
-        code_solution = example["prompt"] + example["canonical_solution"]
-        entry_point = example["entry_point"]
-
-        rename_function = "candidate" + " = " + entry_point + "\n"
-
-        code = code_solution + rename_function + test_function
-        # WARNING: Using exec
-        # pylint: disable-next=exec-used
-        exec(code)
+    evaluate_code(dataset)

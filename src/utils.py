@@ -14,7 +14,9 @@ from src.lora import LLaMAModelWithLoRA
 device = torch.device(
     "mps"
     if torch.backends.mps.is_available()
-    else "cuda" if torch.cuda.is_available() else "cpu"
+    else "cuda"
+    if torch.cuda.is_available()
+    else "cpu"
 )
 
 """
@@ -59,7 +61,7 @@ def load_model(
     """Load the tokenizer and model"""
     tokenizer = LlamaTokenizerFast.from_pretrained(tokenizer_path)
     # TODO: REMOVE THIS AFTER DONE
-    lora_checkpoint_path = "models/codellama_0.pt"
+    lora_checkpoint_path = "models/codellama_2.pt"
 
     if lora:
         model = LLaMAModelWithLoRA(
@@ -74,11 +76,8 @@ def load_model(
         )
 
         if lora_checkpoint_path:
-            # When training on multi-GPU setup, the model needs to be reserialized
-            if device.type == "cuda":
-                model.load_state_dict(
-                    torch.load(lora_checkpoint_path, map_location="cpu")
-                )
+            # Reserialize the model, to make it platform agnostic
+            model.load_state_dict(torch.load(lora_checkpoint_path, map_location="cpu"))
             model.to(device)
 
     else:
@@ -91,7 +90,7 @@ def load_model(
             torch_dtype=dtype,
             device_map=device,
         )
-        model.eval()
+    model.eval()
 
     return tokenizer, model
 

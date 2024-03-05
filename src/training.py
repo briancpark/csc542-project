@@ -71,7 +71,6 @@ class AlpacaHFDataSet(Dataset):
 
 def finetuning(model_path, tokenizer_path, dataset_name, epochs=1, batch_size=32):
     """Training loop to fine-tune the model"""
-    dataset_name = "iamtarun/code_instructions_120k_alpaca"
     tokenizer, model = load_model(model_path, tokenizer_path, lora=True)
 
     os.makedirs("models", exist_ok=True)

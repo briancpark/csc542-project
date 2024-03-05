@@ -22,20 +22,24 @@ if __name__ == "__main__":
     parser.add_argument("--n-tokens-to-generate", "-N", type=int, default=150)
     parser.add_argument("--dataset", type=str, default="openai_humaneval")
     parser.add_argument("--test-dataset", type=str, default="openai_humaneval")
-    parser.add_argument("--train-dataset", type=str, default="openai_humaneval")
-    parser.add_argument("--mode", type=str, default="sps")
+    parser.add_argument(
+        "--train-dataset", type=str, default="iamtarun/code_instructions_120k_alpaca"
+    )
     parser.add_argument(
         "--prompt",
+        "-p",
         type=str,
         default="Question: Write the fibonacci sequence in Python. \nAnswer: def fibonacci(n):",
     )
     parser.add_argument("--inference", action="store_true")
+    parser.add_argument("--inference-evaluate", action="store_true")
     parser.add_argument("--finetuning", action="store_true")
     parser.add_argument("--eda", action="store_true")
     parser.add_argument("--lora-checkpoint-path", type=str)
     args = parser.parse_args()
 
-    if args.inference and not args.test_dataset:
+    # Run inference on a single prompt
+    if args.inference:
         # Disable Autograd when running inference
         with torch.no_grad():
             inference(
@@ -44,18 +48,20 @@ if __name__ == "__main__":
                 args.prompt,
                 lora_checkpoint_path=args.lora_checkpoint_path,
             )
-    elif args.inference and args.test_datasset:
+    # Evaluate inference over the whole dataset
+    elif args.inference_evaluate and args.test_dataset:
         # Disable Autograd when running inference
         with torch.no_grad():
             dataset_inference(
                 args.model,
                 args.tokenizer,
-                args.dataset,
+                args.test_dataset,
                 lora_checkpoint_path=args.lora_checkpoint_path,
             )
     elif args.finetuning:
-        finetuning(args.model, args.tokenizer, args.dataset)
+        finetuning(args.model, args.tokenizer, args.train_dataset)
     elif args.eda:
-        eda(args.model, args.tokenizer, args.dataset)
+        # TODO: (bcp) We need to do EDA on the training dataset as well
+        eda(args.model, args.tokenizer, args.test_dataset)
     else:
         raise ValueError("Invalid mode.")

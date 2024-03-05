@@ -22,9 +22,11 @@ pip install -r requirements.txt
 ## Running the Code
 
 ```sh
-python3 main.py -h                         # for help
-python3 main.py --inference                # for inference
-python3 main.py --inference --test-dataset # for running inference on the test dataset
-python3 main.py --finetuning               # for finetuning/training with LoRA
-python3 main.py --eda                      # for exploratory data analysis
+python3 main.py -h                                  # for help
+python3 main.py --inference                         # for inference on a single prompt
+python3 main.py --inference -p \ 
+        "Question: Write 3sum in Python: Answer:\n" # for inference on a custom prompt
+python3 main.py --inference-evaluate                # for evaluating inference on the whole dataset
+python3 main.py --finetuning                        # for finetuning/training with LoRA
+python3 main.py --eda                               # for exploratory data analysis
 ```
