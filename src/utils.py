@@ -111,7 +111,6 @@ def allocated_memory():
     """Print the allocated memory in GB"""
     if device.type == "mps":
         return torch.mps.current_allocated_memory() / 1e9
-    elif device.type == "cuda":
+    if device.type == "cuda":
         return torch.cuda.memory_allocated() / 1e9
-    else:
-        return float("nan")
+    return float("nan")

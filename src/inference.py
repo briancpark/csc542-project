@@ -56,9 +56,6 @@ def dataset_inference(
     else:
         raise ValueError("Invalid dataset name.")
 
-    passed = 0
-    exception_cnt = {}
-
     evaluate_code(examples, model=model, tokenizer=tokenizer)
 
 
@@ -84,6 +81,7 @@ def autoregressive_sampling(
 
 
 def execute(code_solution, entry_point, test_function):
+    """Dynamically execute the code"""
     rename_function = "candidate" + " = " + entry_point + "\n"
 
     code = code_solution + rename_function + test_function
@@ -137,6 +135,7 @@ def evaluate_code(dataset, model=None, tokenizer=None):
         try:
             execute(code_solution, entry_point, test_function)
             passed += 1
+        # pylint: disable=broad-exception-caught
         except Exception as e:
             exception_type = type(e).__name__
             exception_cnt[exception_type] = exception_cnt.get(exception_type, 0) + 1
