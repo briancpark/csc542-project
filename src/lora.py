@@ -13,6 +13,8 @@ class LLaMAModelWithLoRA(nn.Module):
 
         # pop off the rank parameter
         rank = kwargs.pop("rank", 4)
+        scale = kwargs.pop("scale", 1.0)
+
         device = kwargs["device_map"]
 
         self.llama_model = AutoModelForCausalLM.from_pretrained(
@@ -23,6 +25,7 @@ class LLaMAModelWithLoRA(nn.Module):
 
         self.num_layers = self.llama_model.config.num_hidden_layers
         self.hidden_size = self.llama_model.config.hidden_size
+        print(self.num_layers, self.hidden_size)
         # Assuming the model's transformer layer is accessible like this
         for i in range(self.num_layers):
             # Modify only certain layers, skipping the last 4 for example
@@ -53,15 +56,9 @@ class LLaMAModelWithLoRA(nn.Module):
         This requires custom handling based on the internal structure of the LLaMA model.
         """
 
-        # Example of how to apply LoRA adjustments
-        # Actual implementation requires accessing and adjusting transformer layer weights
-
         output = self.llama_model(
             input_ids=input_ids,
             labels=labels,
         )
-
-        # Placeholder for LoRA integration
-        # You would typically adjust the weights of the transformer layers here
 
         return output

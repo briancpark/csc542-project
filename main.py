@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        default="JackFram/llama-160m",  # TinyLlama/TinyLlama-1.1B-Chat-v0.1
+        default="TinyLlama/TinyLlama-1.1B-Chat-v0.1",  # TinyLlama/TinyLlama-1.1B-Chat-v0.1
     )
     parser.add_argument("--temperature", "-t", type=float, default=0.0)
     parser.add_argument("--gamma", "-g", type=int, default=4)
@@ -35,6 +35,10 @@ if __name__ == "__main__":
     parser.add_argument("--inference-evaluate", action="store_true")
     parser.add_argument("--finetuning", action="store_true")
     parser.add_argument("--eda", action="store_true")
+    parser.add_argument("--rank", type=int, default=4)
+    parser.add_argument("--layers", type=int, default=4)
+    parser.add_argument("--epochs", type=int, default=1)
+    parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lora-checkpoint-path", type=str)
     args = parser.parse_args()
 

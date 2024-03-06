@@ -58,8 +58,6 @@ def load_model(
 ):
     """Load the tokenizer and model"""
     tokenizer = LlamaTokenizerFast.from_pretrained(tokenizer_path)
-    # TODO: REMOVE THIS AFTER DONE
-    lora_checkpoint_path = "models/codellama_2.pt"
 
     if lora:
         model = LLaMAModelWithLoRA(
@@ -110,7 +108,8 @@ def norm_logits(logits, temperature, eps=1e-10):
 def allocated_memory():
     """Print the allocated memory in GB"""
     if device.type == "mps":
-        return torch.mps.current_allocated_memory() / 1e9
+        return torch.mps.driver_allocated_memory() / 1e9
+        # return torch.mps.current_allocated_memory() / 1e9
     if device.type == "cuda":
-        return torch.cuda.memory_allocated() / 1e9
+        return torch.cuda.mem_get_info()[0] / 1e9
     return float("nan")

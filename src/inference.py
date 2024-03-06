@@ -122,7 +122,6 @@ def evaluate_code(dataset, model=None, tokenizer=None):
             output = output[:, instruction_prompt_idx:]
 
             solution = tokenizer.decode(output[0], skip_special_tokens=False)
-            # print(solution)
             tqdm.write(f"Time taken: {tok - tik:.3f} seconds")
             tqdm.write(f"Tok/s: {output.shape[1] / (tok - tik):.3f}")
 
@@ -142,6 +141,6 @@ def evaluate_code(dataset, model=None, tokenizer=None):
             continue
 
     print(
-        f"Accuracy: {passed/ len(dataset) * 100}%; Passed: {passed} out of {len(dataset)}"
+        f"Accuracy: {passed / len(dataset) * 100}%; Passed: {passed} out of {len(dataset)}"
     )
     print(f"Exceptions: {exception_cnt}")
