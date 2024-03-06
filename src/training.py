@@ -1,12 +1,13 @@
 """Here outlines the training (fine-tuning) process for the model"""
 
 import os
+import json
 import torch
 from datasets import load_dataset
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from src.utils import device, load_model, allocated_memory
-from src.inference import autoregressive_sampling, dataset_inference
+from src.inference import dataset_inference
 
 
 class HumanEvalHFDataSet(Dataset):
@@ -128,13 +129,24 @@ def finetuning(
         # checkpoint model at every epoch
         torch.save(
             model.state_dict(),
-            f"models/codellama_{display_model_name}_{rank}_{alpha}_{layers}_{batch_size}_{epoch}.pt",
+            f"models/codellama_{display_model_name}_\
+                {rank}_\
+                {alpha}_\
+                {layers}_\
+                {batch_size}_\
+                {epoch}.pt",
         )
 
     backprop_mem_consumed = allocated_memory()
     torch.save(
         model.state_dict(),
-        f"models/codellama_{display_model_name}_{rank}_{alpha}_{layers}_{batch_size}_{epochs}_final.pt",
+        f"models/codellama_{display_model_name}_\
+            {rank}_\
+            {alpha}_\
+            {layers}_\
+            {batch_size}_\
+            {epochs}_\
+            final.pt",
     )
 
     # Run inference over the test dataset and log the results
@@ -144,20 +156,34 @@ def finetuning(
         model_path,
         tokenizer_path,
         "openai_humaneval",
-        lora_checkpoint_path=f"models/codellama_{display_model_name}_{rank}_{alpha}_{layers}_{batch_size}_{epochs}_final.pt",
+        lora_checkpoint_path=f"models/codellama_{display_model_name}_\
+            {rank}_\
+            {alpha}_\
+            {layers}_\
+            {batch_size}_\
+            {epochs}_\
+            final.pt",
     )
 
     results = {
         "accuracy": accuracy,
         "exception_cnt": execption_cnt,
         "loss": loss.item(),
-        # TODO: After fixing bugs, incorporate LoRA and original
+        "params": model.trainable_params,
+        "lora_params": model.lora_trainable_params,
         "total_params": sum(p.numel() for p in model.parameters()),
         "memory": backprop_mem_consumed,
     }
-    # Store results into a json file
+
     with open(
-        f"logs/codellama_{display_model_name}_{rank}_{alpha}_{layers}_{batch_size}_{epochs}_final.json",
+        f"logs/codellama_{display_model_name}_\
+        {rank}_\
+        {alpha}_\
+        {layers}_\
+        {batch_size}_\
+        {epochs}_\
+        final.json",
         "w",
+        encoding="utf-8",
     ) as f:
         json.dump(results, f, indent=4)

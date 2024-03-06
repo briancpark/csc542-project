@@ -14,7 +14,7 @@ from src.lora import LLaMAModelWithLoRA
 device = torch.device(
     "mps"
     if torch.backends.mps.is_available()
-    else "cuda:3" if torch.cuda.is_available() else "cpu"
+    else "cuda" if torch.cuda.is_available() else "cpu"
 )
 
 """

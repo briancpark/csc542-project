@@ -15,7 +15,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        default="JackFram/llama-160m",  # TinyLlama/TinyLlama-1.1B-Chat-v0.1
+        # default="JackFram/llama-160m",
+        default="TinyLlama/TinyLlama-1.1B-Chat-v0.1",
     )
     parser.add_argument("--temperature", "-t", type=float, default=0.0)
     parser.add_argument("--gamma", "-g", type=int, default=4)
