@@ -42,21 +42,20 @@ class LLaMAModelWithLoRA(nn.Module):
 
         self.num_layers = self.llama_model.config.num_hidden_layers
         self.hidden_size = self.llama_model.config.hidden_size
-        
+
         if lora_layers == -1:
             lora_layers = 0
         else:
             lora_layers = self.num_layers - lora_layers
-            
+
         self.trainable_params = 0
-        
+
         # count up the number of trainable parameters (only requires_grad=True parameters are counted)
         for i in range(self.num_layers):
             layer = self.llama_model.model.layers[i]
             for param in layer.parameters():
                 if param.requires_grad:
                     self.trainable_params += param.numel()
-            
 
         # Assuming the model's transformer layer is accessible like this
         for i in range(self.num_layers):
@@ -64,12 +63,11 @@ class LLaMAModelWithLoRA(nn.Module):
 
             for param in layer.parameters():
                 param.requires_grad = False
-                
-                
+
             if i > lora_layers:
                 # According to the paper, they only enable LoRA for q_proj and v_proj
                 # print(layer)
-                    
+
                 layer.self_attn.q_proj = parametrize.register_parametrization(
                     layer.self_attn.q_proj,
                     "weight",
@@ -81,18 +79,14 @@ class LLaMAModelWithLoRA(nn.Module):
                     "weight",
                     LoRALinear(self.hidden_size, self.hidden_size, rank, alpha, device),
                 )
-            
-                
+
         # now count up the number of trainable parameters
         self.lora_trainable_params = 0
         for i in range(self.num_layers):
             layer = self.llama_model.model.layers[i]
-                
-                
+
         print(f"Total trainable parameters: {self.trainable_params}")
         print(f"Total LoRA trainable parameters: {self.lora_trainable_params}")
-        
-                
 
     def forward(self, input_ids, labels=None):
         """

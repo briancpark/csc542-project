@@ -45,9 +45,14 @@ def dataset_inference(
     model_path, tokenizer_path, dataset_name, lora_checkpoint_path=None
 ):
     """Run inference on the model over a dataset"""
-    lora_checkpoint_path = "models/codellama_1.pt"
     tokenizer, model = load_model(
-        model_path, tokenizer_path, lora=True, lora_checkpoint_path=lora_checkpoint_path
+        model_path,
+        tokenizer_path,
+        lora=True,
+        rank=8,
+        layers=-1,
+        alpha=1.0,
+        lora_checkpoint_path=lora_checkpoint_path,
     )
 
     if dataset_name == "openai_humaneval":
@@ -56,7 +61,7 @@ def dataset_inference(
     else:
         raise ValueError("Invalid dataset name.")
 
-    evaluate_code(examples, model=model, tokenizer=tokenizer)
+    return evaluate_code(examples, model=model, tokenizer=tokenizer)
 
 
 def autoregressive_sampling(
@@ -144,3 +149,4 @@ def evaluate_code(dataset, model=None, tokenizer=None):
         f"Accuracy: {passed / len(dataset) * 100}%; Passed: {passed} out of {len(dataset)}"
     )
     print(f"Exceptions: {exception_cnt}")
+    return passed / len(dataset), exception_cnt

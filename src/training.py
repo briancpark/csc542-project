@@ -6,7 +6,7 @@ from datasets import load_dataset
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from src.utils import device, load_model, allocated_memory
-from src.inference import autoregressive_sampling
+from src.inference import autoregressive_sampling, dataset_inference
 
 
 class HumanEvalHFDataSet(Dataset):
@@ -85,6 +85,7 @@ def finetuning(
     )
 
     os.makedirs("models", exist_ok=True)
+    os.makedirs("logs", exist_ok=True)
     display_model_name = model_path.split("/")[-1]
 
     # Set padding token if it's not already set
@@ -130,19 +131,33 @@ def finetuning(
             f"models/codellama_{display_model_name}_{rank}_{alpha}_{layers}_{batch_size}_{epoch}.pt",
         )
 
+    backprop_mem_consumed = allocated_memory()
     torch.save(
         model.state_dict(),
         f"models/codellama_{display_model_name}_{rank}_{alpha}_{layers}_{batch_size}_{epochs}_final.pt",
     )
 
-    # run inference
+    # Run inference over the test dataset and log the results
+
     model.eval()
-    prompt = """def fibonacci(n):
-        if n <= 0:
-            return 0
-        elif n == 1:
-            return 1
-    """
-    input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device)
-    output_ids = autoregressive_sampling(input_ids, model, 150)
-    print(tokenizer.decode(output_ids[0], skip_special_tokens=True))
+    accuracy, execption_cnt = dataset_inference(
+        model_path,
+        tokenizer_path,
+        "openai_humaneval",
+        lora_checkpoint_path=f"models/codellama_{display_model_name}_{rank}_{alpha}_{layers}_{batch_size}_{epochs}_final.pt",
+    )
+
+    results = {
+        "accuracy": accuracy,
+        "exception_cnt": execption_cnt,
+        "loss": loss.item(),
+        # TODO: After fixing bugs, incorporate LoRA and original
+        "total_params": sum(p.numel() for p in model.parameters()),
+        "memory": backprop_mem_consumed,
+    }
+    # Store results into a json file
+    with open(
+        f"logs/codellama_{display_model_name}_{rank}_{alpha}_{layers}_{batch_size}_{epochs}_final.json",
+        "w",
+    ) as f:
+        json.dump(results, f, indent=4)
