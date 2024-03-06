@@ -69,12 +69,23 @@ class AlpacaHFDataSet(Dataset):
         return {key: val.squeeze(0) for key, val in self.examples[idx].items()}
 
 
-def finetuning(model_path, tokenizer_path, dataset_name, epochs=1, batch_size=32):
+def finetuning(
+    model_path,
+    tokenizer_path,
+    dataset_name,
+    epochs=1,
+    batch_size=32,
+    rank=4,
+    alpha=1.0,
+    layers=4,
+):
     """Training loop to fine-tune the model"""
-    dataset_name = "iamtarun/code_instructions_120k_alpaca"
-    tokenizer, model = load_model(model_path, tokenizer_path, lora=True)
+    tokenizer, model = load_model(
+        model_path, tokenizer_path, lora=True, rank=rank, layers=layers, alpha=alpha
+    )
 
     os.makedirs("models", exist_ok=True)
+    display_model_name = model_path.split("/")[-1]
 
     # Set padding token if it's not already set
     if tokenizer.pad_token is None:
@@ -111,12 +122,18 @@ def finetuning(model_path, tokenizer_path, dataset_name, epochs=1, batch_size=32
 
             pbar_epochs.set_description(f"Epoch {epoch}")
             pbar_batches.set_postfix(
-                {"Loss": loss.item(), "Memory": allocated_memory()}
+                {"Loss": loss.item(), "Memory (GB)": allocated_memory()}
             )
-        # checkpoint model
-        torch.save(model.state_dict(), f"models/codellama_{epoch}.pt")
+        # checkpoint model at every epoch
+        torch.save(
+            model.state_dict(),
+            f"models/codellama_{display_model_name}_{rank}_{alpha}_{layers}_{batch_size}_{epoch}.pt",
+        )
 
-    torch.save(model.state_dict(), "models/codellama_final.pt")
+    torch.save(
+        model.state_dict(),
+        f"models/codellama_{display_model_name}_{rank}_{alpha}_{layers}_{batch_size}_{epochs}_final.pt",
+    )
 
     # run inference
     model.eval()

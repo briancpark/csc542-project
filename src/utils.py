@@ -54,7 +54,13 @@ def torch_timer():
 
 
 def load_model(
-    model_path, tokenizer_path, lora=False, rank=4, lora_checkpoint_path=None
+    model_path,
+    tokenizer_path,
+    lora=False,
+    rank=4,
+    layers=4,
+    alpha=1.0,
+    lora_checkpoint_path=None,
 ):
     """Load the tokenizer and model"""
     tokenizer = LlamaTokenizerFast.from_pretrained(tokenizer_path)
@@ -63,6 +69,8 @@ def load_model(
         model = LLaMAModelWithLoRA(
             model_path,
             rank=rank,
+            layers=layers,
+            alpha=alpha,
             # load_in_4bit=True,
             # load_in_8bit=True,
             # bnb_4bit_compute_dtype=torch.bfloat16,
