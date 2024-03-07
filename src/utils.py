@@ -60,6 +60,7 @@ def load_model(
     rank=4,
     layers=4,
     alpha=1.0,
+    dropout=0.0,
     lora_checkpoint_path=None,
 ):
     """Load the tokenizer and model"""
@@ -71,11 +72,12 @@ def load_model(
             rank=rank,
             layers=layers,
             alpha=alpha,
+            dropout=dropout,
             # load_in_4bit=True,
             # load_in_8bit=True,
             # bnb_4bit_compute_dtype=torch.bfloat16,
             # attn_implementation="flash_attention_2",
-            torch_dtype=torch.float32,
+            torch_dtype=dtype,
             device_map=device,
         )
 
@@ -102,8 +104,8 @@ def load_model(
 def sample(p, determinsitic=False):
     """Sample logits from a distribution or take the argmax"""
     if determinsitic:
-        return torch.multinomial(p, 1)
-    return torch.argmax(p).unsqueeze(0).unsqueeze(0)
+        return torch.argmax(p).unsqueeze(0).unsqueeze(0)
+    return torch.multinomial(p, 1)
 
 
 def norm_logits(logits, temperature, eps=1e-10):

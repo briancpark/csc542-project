@@ -6,7 +6,7 @@ import torch
 from datasets import load_dataset
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from src.utils import device, load_model, allocated_memory
+from src.utils import device, load_model, allocated_memory, torch_timer
 from src.inference import dataset_inference
 
 
@@ -79,10 +79,17 @@ def finetuning(
     rank=4,
     alpha=1.0,
     layers=4,
+    dropout=0.0,
 ):
     """Training loop to fine-tune the model"""
     tokenizer, model = load_model(
-        model_path, tokenizer_path, lora=True, rank=rank, layers=layers, alpha=alpha
+        model_path,
+        tokenizer_path,
+        lora=True,
+        rank=rank,
+        layers=layers,
+        dropout=dropout,
+        alpha=alpha,
     )
 
     os.makedirs("models", exist_ok=True)
@@ -108,6 +115,9 @@ def finetuning(
 
     model.train()
     pbar_epochs = tqdm(range(epochs), desc="Epochs")
+
+    tik = torch_timer()
+
     for epoch in pbar_epochs:
         pbar_batches = tqdm(data_loader, desc="Batches", leave=False)
         for batch in pbar_batches:
@@ -129,24 +139,16 @@ def finetuning(
         # checkpoint model at every epoch
         torch.save(
             model.state_dict(),
-            f"models/codellama_{display_model_name}_\
-                {rank}_\
-                {alpha}_\
-                {layers}_\
-                {batch_size}_\
-                {epoch}.pt",
+            f"models/codellama_{display_model_name}_r{rank}_a{alpha}_l{layers}_d{dropout}_b{batch_size}_e{epoch}.pt",
         )
 
     backprop_mem_consumed = allocated_memory()
+
+    tok = torch_timer()
+
     torch.save(
         model.state_dict(),
-        f"models/codellama_{display_model_name}_\
-            {rank}_\
-            {alpha}_\
-            {layers}_\
-            {batch_size}_\
-            {epochs}_\
-            final.pt",
+        f"models/codellama_{display_model_name}_r{rank}_a{alpha}_l{layers}_d{dropout}_b{batch_size}_e{epochs}_final.pt",
     )
 
     # Run inference over the test dataset and log the results
@@ -156,13 +158,7 @@ def finetuning(
         model_path,
         tokenizer_path,
         "openai_humaneval",
-        lora_checkpoint_path=f"models/codellama_{display_model_name}_\
-            {rank}_\
-            {alpha}_\
-            {layers}_\
-            {batch_size}_\
-            {epochs}_\
-            final.pt",
+        lora_checkpoint_path=f"models/codellama_{display_model_name}_r{rank}_a{alpha}_l{layers}_d{dropout}_b{batch_size}_e{epochs}_final.pt",
     )
 
     results = {
@@ -171,18 +167,12 @@ def finetuning(
         "loss": loss.item(),
         "params": model.trainable_params,
         "lora_params": model.lora_trainable_params,
-        "total_params": sum(p.numel() for p in model.parameters()),
         "memory": backprop_mem_consumed,
+        "training_time": tok - tik,
     }
 
     with open(
-        f"logs/codellama_{display_model_name}_\
-        {rank}_\
-        {alpha}_\
-        {layers}_\
-        {batch_size}_\
-        {epochs}_\
-        final.json",
+        f"logs/codellama_{display_model_name}_r{rank}_a{alpha}_l{layers}_d{dropout}_b{batch_size}_e{epochs}_final.json",
         "w",
         encoding="utf-8",
     ) as f:

@@ -9,18 +9,24 @@ from transformers import AutoModelForCausalLM
 class LoRALinear(nn.Module):
     """LoRA (Low-Rank Adaptation) for Linear Layers"""
 
-    def __init__(self, features_in, features_out, rank=1, alpha=1, device="cpu"):
+    def __init__(self, feature_shape, rank=1, alpha=1, dropout=0.0, device="cpu"):
         super().__init__()
 
         self.A = nn.Parameter(
-            nn.init.normal_(torch.empty(rank, features_out), mean=0, std=1)
+            nn.init.normal_(torch.empty(rank, feature_shape[1]), mean=0, std=1)
         ).to(device)
-        self.B = nn.Parameter(torch.zeros((features_in, rank))).to(device)
+        self.B = nn.Parameter(torch.zeros((feature_shape[0], rank))).to(device)
 
         self.scale = alpha / rank
+        if dropout > 0.0:
+            self.dropout = nn.Dropout(dropout)
+        else:
+            self.dropout = None
 
     def forward(self, W):
         """Forward pass for LoRA"""
+        if self.dropout:
+            return self.dropout(W) + (self.B @ self.A) * self.scale
         return W + (self.B @ self.A) * self.scale
 
 
@@ -39,8 +45,10 @@ class LLaMAModelWithLoRA(nn.Module):
         rank = kwargs.pop("rank", 4)
         alpha = kwargs.pop("alpha", 1.0)
         lora_layers = kwargs.pop("layers", 4)
+        dropout = kwargs.pop("dropout", 0.0)
 
         device = kwargs["device_map"]
+        dtype = kwargs["dtype"]
 
         self.llama_model = AutoModelForCausalLM.from_pretrained(
             model_name_or_path, **kwargs
@@ -60,6 +68,12 @@ class LLaMAModelWithLoRA(nn.Module):
             p.numel() for p in self.llama_model.parameters() if p.requires_grad
         )
 
+        # print(self.num_layers, self.hidden_size)
+        # # print dimensions of the model
+        # print("dim", self.llama_model.model.layers[0].self_attn.q_proj.weight.shape)
+        # print()
+        # print(self.llama_model)
+
         # Assuming the model's transformer layer is accessible like this
         for i in range(self.num_layers):
             layer = self.llama_model.model.layers[i]
@@ -70,17 +84,18 @@ class LLaMAModelWithLoRA(nn.Module):
             if i > lora_layers:
                 # According to the paper, they only enable LoRA for q_proj and v_proj
                 # print(layer)
-
+                q_shape = layer.self_attn.q_proj.weight.shape
                 layer.self_attn.q_proj = parametrize.register_parametrization(
                     layer.self_attn.q_proj,
                     "weight",
-                    LoRALinear(self.hidden_size, self.hidden_size, rank, alpha, device),
+                    LoRALinear(q_shape, rank, alpha, dropout, device),
                 )
 
+                v_shape = layer.self_attn.v_proj.weight.shape
                 layer.self_attn.v_proj = parametrize.register_parametrization(
                     layer.self_attn.v_proj,
                     "weight",
-                    LoRALinear(self.hidden_size, self.hidden_size, rank, alpha, device),
+                    LoRALinear(v_shape, rank, alpha, dropout, device),
                 )
 
         # now count up the number of trainable parameters

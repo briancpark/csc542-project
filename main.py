@@ -15,8 +15,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        # default="JackFram/llama-160m",
-        default="TinyLlama/TinyLlama-1.1B-Chat-v0.1",
+        default="JackFram/llama-160m",
+        # default="TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T",
+        # default="codellama/CodeLlama-7b-hf",
     )
     parser.add_argument("--temperature", "-t", type=float, default=0.0)
     parser.add_argument("--gamma", "-g", type=int, default=4)
@@ -40,7 +41,8 @@ if __name__ == "__main__":
     parser.add_argument("--alpha", type=float, default=1.0)
     parser.add_argument("--layers", type=int, default=-1)
     parser.add_argument("--epochs", type=int, default=1)
-    parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--batch-size", type=int, default=4)
+    parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--lora-checkpoint-path", type=str)
     args = parser.parse_args()
 
@@ -74,6 +76,7 @@ if __name__ == "__main__":
             rank=args.rank,
             alpha=args.alpha,
             layers=args.layers,
+            dropout=args.dropout,
         )
     elif args.eda:
         # TODO: (bcp) We need to do EDA on the training dataset as well

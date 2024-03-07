@@ -1,5 +1,6 @@
 """Here lies the inference code for the model"""
 
+import signal
 import torch
 from tqdm import tqdm
 from datasets import load_dataset
@@ -21,6 +22,7 @@ def inference(model_path, tokenizer_path, prompt, lora_checkpoint_path=None):
         output = autoregressive_sampling(
             inputs,
             model,
+            tokenizer,
             N=150,
             temperature=0.0,
         )
@@ -52,6 +54,7 @@ def dataset_inference(
         rank=8,
         layers=-1,
         alpha=1.0,
+        dropout=0.1,
         lora_checkpoint_path=lora_checkpoint_path,
     )
 
@@ -67,6 +70,7 @@ def dataset_inference(
 def autoregressive_sampling(
     input_ids,
     model,
+    tokenizer,
     N,
     temperature=1.0,
 ):
@@ -82,22 +86,41 @@ def autoregressive_sampling(
         input_ids = torch.cat((input_ids, next_token_id), dim=-1)
         n += 1
 
+        if next_token_id == tokenizer.eos_token_id:
+            break
+
     return input_ids
 
 
 def execute(code_solution, entry_point, test_function):
     """Dynamically execute the code"""
-    rename_function = "candidate" + " = " + entry_point + "\n"
+    rename_function = (
+        "\n" + "candidate" + " = " + entry_point + "\n" + "check(candidate)" + "\n"
+    )
 
     code = code_solution + rename_function + test_function
-    # WARNING: Using exec
-    # pylint: disable-next=exec-used
-    exec(code)
+    print(code)
+
+    # Sometimes code will require input or run in infinite loops, so just time it out
+
+    def handler(signum, frame):
+        raise TimeoutError("Execution timed out")
+
+    signal.signal(signal.SIGALRM, handler)
+    signal.alarm(60)
+
+    try:
+        # WARNING: Using exec
+        # pylint: disable-next=exec-used
+        exec(code)
+    finally:
+        # Disable the alarm
+        signal.alarm(0)
 
 
 def evaluate_code(dataset, model=None, tokenizer=None):
     """Evaluate the code by running it"""
-    instruction_prompt = """Question: Complete the following Python code. \nAnswer: """
+    instruction_prompt = "Complete the following Python function:\n"
     passed = 0
     exception_cnt = {}
 
@@ -120,19 +143,24 @@ def evaluate_code(dataset, model=None, tokenizer=None):
             output = autoregressive_sampling(
                 inputs,
                 model,
+                tokenizer,
                 N=250,
                 temperature=1.0,
             )
             tok = torch_timer()
             output = output[:, instruction_prompt_idx:]
 
-            solution = tokenizer.decode(output[0], skip_special_tokens=False)
+            solution = tokenizer.decode(
+                output[0, :],
+                skip_special_tokens=False,
+                clean_up_tokenization_spaces=False,
+            )
             tqdm.write(f"Time taken: {tok - tik:.3f} seconds")
             tqdm.write(f"Tok/s: {output.shape[1] / (tok - tik):.3f}")
 
-            code_solution = (
-                prompt + solution[instruction_prompt_idx + 1 + len(entry_point) :]
-            )
+            code_solution = prompt + solution
+            # remove </s>
+            code_solution = code_solution.replace("</s>", "")
         else:
             code_solution = prompt + example["canonical_solution"]
 
@@ -142,6 +170,7 @@ def evaluate_code(dataset, model=None, tokenizer=None):
         # pylint: disable=broad-exception-caught
         except Exception as e:
             exception_type = type(e).__name__
+            print(exception_type)
             exception_cnt[exception_type] = exception_cnt.get(exception_type, 0) + 1
             continue
 
