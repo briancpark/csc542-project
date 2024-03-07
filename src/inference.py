@@ -94,11 +94,11 @@ def autoregressive_sampling(
 
 def execute(code_solution, entry_point, test_function):
     """Dynamically execute the code"""
-    rename_function = (
-        "\n" + "candidate" + " = " + entry_point + "\n" + "check(candidate)" + "\n"
-    )
+    rename_function = "\n" + "candidate" + " = " + entry_point + "\n"
 
-    code = code_solution + rename_function + test_function
+    main_fn = """if __name__ == "__main__":\n\tcheck(candidate)"""
+
+    code = code_solution + rename_function + test_function + "\n" + main_fn
     print(code)
 
     # Sometimes code will require input or run in infinite loops, so just time it out
@@ -171,6 +171,8 @@ def evaluate_code(dataset, model=None, tokenizer=None):
         except Exception as e:
             exception_type = type(e).__name__
             print(exception_type)
+            if exception_type == "NameError":
+                print(e)
             exception_cnt[exception_type] = exception_cnt.get(exception_type, 0) + 1
             continue
 

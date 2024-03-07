@@ -9,13 +9,27 @@ from transformers import AutoModelForCausalLM
 class LoRALinear(nn.Module):
     """LoRA (Low-Rank Adaptation) for Linear Layers"""
 
-    def __init__(self, feature_shape, rank=1, alpha=1, dropout=0.0, device="cpu"):
+    def __init__(
+        self,
+        feature_shape,
+        rank=1,
+        alpha=1,
+        dropout=0.0,
+        dtype=torch.float32,
+        device="cpu",
+    ):
         super().__init__()
 
-        self.A = nn.Parameter(
-            nn.init.normal_(torch.empty(rank, feature_shape[1]), mean=0, std=1)
-        ).to(device)
-        self.B = nn.Parameter(torch.zeros((feature_shape[0], rank))).to(device)
+        self.A = (
+            nn.Parameter(
+                nn.init.normal_(torch.empty(rank, feature_shape[1]), mean=0, std=1)
+            )
+            .to(device)
+            .to(dtype)
+        )
+        self.B = (
+            nn.Parameter(torch.zeros((feature_shape[0], rank))).to(device).to(dtype)
+        )
 
         self.scale = alpha / rank
         if dropout > 0.0:
@@ -48,7 +62,7 @@ class LLaMAModelWithLoRA(nn.Module):
         dropout = kwargs.pop("dropout", 0.0)
 
         device = kwargs["device_map"]
-        dtype = kwargs["dtype"]
+        dtype = kwargs["torch_dtype"]
 
         self.llama_model = AutoModelForCausalLM.from_pretrained(
             model_name_or_path, **kwargs
@@ -88,14 +102,14 @@ class LLaMAModelWithLoRA(nn.Module):
                 layer.self_attn.q_proj = parametrize.register_parametrization(
                     layer.self_attn.q_proj,
                     "weight",
-                    LoRALinear(q_shape, rank, alpha, dropout, device),
+                    LoRALinear(q_shape, rank, alpha, dropout, dtype, device),
                 )
 
                 v_shape = layer.self_attn.v_proj.weight.shape
                 layer.self_attn.v_proj = parametrize.register_parametrization(
                     layer.self_attn.v_proj,
                     "weight",
-                    LoRALinear(v_shape, rank, alpha, dropout, device),
+                    LoRALinear(v_shape, rank, alpha, dropout, dtype, device),
                 )
 
         # now count up the number of trainable parameters
