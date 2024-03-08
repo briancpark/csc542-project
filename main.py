@@ -12,6 +12,7 @@ if __name__ == "__main__":
     # Set any environment variables and PyTorch performance settings
     os.environ["OMP_NUM_THREADS"] = f"{os.cpu_count()}"
     torch.backends.cudnn.benchmark = True
+    torch.manual_seed(1337)
 
     parser = argparse.ArgumentParser()
     parser.add_argument(

@@ -126,14 +126,9 @@ def execute(code_solution, entry_point, test_function):
 
 def evaluate_code(dataset, model=None, tokenizer=None):
     """Evaluate the code by running it"""
-
-    # instruction_prompt = "Question: Complete the following Python function. Your solution should only consist of valid Python code and should not include any additional comments, print statements, or non-code content. Finish the rest:\n"
-    instruction_prompt = "Complete the following Python function:\n"
-    instruction_prompt = "Finish the following Python function. Do not write anything else outside of the function:\n"
-    # for Code-LLaMA-7B
-    # https://github.com/facebookresearch/codellama/issues/157
-    # instruction_prompt = "<s>[INST] Complete the following code. There is a hidden framework that will evaluate your code, so DO NOT write any additional functions, tests, or main functions (such as if __name__ == '__main__'). [/INST] Response </s>\n"
-
+    instruction_prompt = (
+        """Complete the following Python code without any tests or explanation\n"""
+    )
     passed = 0
     exception_cnt = {}
 
@@ -141,9 +136,7 @@ def evaluate_code(dataset, model=None, tokenizer=None):
         prompt = example["prompt"] + "\n    "
         test_function = example["test"]
         entry_point = example["entry_point"]
-        instruction_prompt = (
-            """Complete the following Python code without any tests or explanation\n"""
-        )
+
         if model and tokenizer:
             instruction_prompt_ids = tokenizer(
                 instruction_prompt, return_tensors="pt"
@@ -177,7 +170,8 @@ def evaluate_code(dataset, model=None, tokenizer=None):
 
             # remove </s>
             code_solution = code_solution.replace("</s>", "")
-            # README: This is for CodeLLaMA; but we need to just take extra precation to remove the last line
+            # README: This is for CodeLLaMA; but we need to just take extra
+            # precaution to remove the last line
             # It's very hacky, but I cannot find any other systematic way around it.
             # Trim anything after if __name__ == "__main__":
             code_solution = code_solution.split('if __name__ == "__main__":')[0]

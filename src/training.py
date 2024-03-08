@@ -145,19 +145,21 @@ def finetuning(
                 {"Loss": loss.item(), "Memory (GB)": allocated_memory()}
             )
         # checkpoint model at every epoch
-        torch.save(
-            model.state_dict(),
-            f"models/codellama_{display_model_name}_r{rank}_a{alpha}_l{layers}_d{dropout}_b{batch_size}_e{epoch}.pt",
+        model_chk_path = (
+            f"models/codellama_{display_model_name}_r{rank}_a{alpha}_"
+            f"l{layers}_d{dropout}_b{batch_size}_e{epoch}.pt"
         )
+        torch.save(model.state_dict(), model_chk_path)
 
     backprop_mem_consumed = allocated_memory()
 
     tok = torch_timer()
-
-    torch.save(
-        model.state_dict(),
-        f"models/codellama_{display_model_name}_r{rank}_a{alpha}_l{layers}_d{dropout}_b{batch_size}_e{epochs}_final.pt",
+    model_chk_base = (
+        f"models/codellama_{display_model_name}_r{rank}_a{alpha}_"
+        f"l{layers}_d{dropout}_b{batch_size}_e{epochs}_final"
     )
+    model_chk_path = f"{model_chk_base}.pt"
+    torch.save(model.state_dict(), model_chk_path)
 
     # Run inference over the test dataset and log the results
 
@@ -166,7 +168,7 @@ def finetuning(
         model_path,
         tokenizer_path,
         "openai_humaneval",
-        lora_checkpoint_path=f"models/codellama_{display_model_name}_r{rank}_a{alpha}_l{layers}_d{dropout}_b{batch_size}_e{epochs}_final.pt",
+        lora_checkpoint_path=model_chk_path,
     )
 
     results = {
@@ -180,9 +182,10 @@ def finetuning(
         "losses": losses,
     }
 
-    with open(
-        f"logs/codellama_{display_model_name}_r{rank}_a{alpha}_l{layers}_d{dropout}_b{batch_size}_e{epochs}_final.json",
-        "w",
-        encoding="utf-8",
-    ) as f:
+    model_chk_path = (
+        f"models/codellama_{display_model_name}_r{rank}_a{alpha}_"
+        f"l{layers}_d{dropout}_b{batch_size}_e{epochs}_final.pt"
+    )
+
+    with open(f"{model_chk_base}.json", "w", encoding="utf-8") as f:
         json.dump(results, f, indent=4)
