@@ -15,8 +15,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        default="JackFram/llama-160m",
-        # default="TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T",
+        default="TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T",
         # default="codellama/CodeLlama-7b-hf",
     )
     parser.add_argument("--temperature", "-t", type=float, default=0.0)
@@ -41,7 +40,7 @@ if __name__ == "__main__":
     parser.add_argument("--alpha", type=float, default=1.0)
     parser.add_argument("--layers", type=int, default=-1)
     parser.add_argument("--epochs", type=int, default=1)
-    parser.add_argument("--batch-size", type=int, default=4)
+    parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--lora-checkpoint-path", type=str)
     args = parser.parse_args()
@@ -57,7 +56,7 @@ if __name__ == "__main__":
                 lora_checkpoint_path=args.lora_checkpoint_path,
             )
     # Evaluate inference over the whole dataset
-    elif args.inference_evaluate and args.test_dataset:
+    elif args.inference_evaluate:
         # Disable Autograd when running inference
         with torch.no_grad():
             dataset_inference(

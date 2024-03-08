@@ -5,7 +5,7 @@ import torch
 
 from torch.nn import functional as F
 from transformers import (
-    LlamaTokenizerFast,
+    LlamaTokenizer,
     AutoModelForCausalLM,
 )
 from src.lora import LLaMAModelWithLoRA
@@ -64,7 +64,7 @@ def load_model(
     lora_checkpoint_path=None,
 ):
     """Load the tokenizer and model"""
-    tokenizer = LlamaTokenizerFast.from_pretrained(tokenizer_path)
+    tokenizer = LlamaTokenizer.from_pretrained(tokenizer_path)
 
     if lora:
         model = LLaMAModelWithLoRA(
@@ -101,9 +101,9 @@ def load_model(
     return tokenizer, model
 
 
-def sample(p, determinsitic=False):
+def sample(p, deterministic=False):
     """Sample logits from a distribution or take the argmax"""
-    if determinsitic:
+    if deterministic:
         return torch.argmax(p).unsqueeze(0).unsqueeze(0)
     return torch.multinomial(p, 1)
 
@@ -121,5 +121,5 @@ def allocated_memory():
         return torch.mps.driver_allocated_memory() / 1e9
         # return torch.mps.current_allocated_memory() / 1e9
     if device.type == "cuda":
-        return torch.cuda.mem_get_info()[0] / 1e9
+        return torch.cuda.memory_reserved() / 1e9
     return float("nan")
