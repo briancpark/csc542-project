@@ -105,9 +105,8 @@ def execute(code_solution, entry_point, test_function):
     main_fn = f"""candidate = {entry_point}\ncheck(candidate)\n"""
 
     code = code_solution + "\n" + test_function + "\n" + main_fn
-    print(code)
 
-    # Sometimes code will require input or run in infinite loops, so just time it out
+    # Code could potentially require input or run in infinite loops, so just time it out
 
     def handler(signum, frame):
         raise TimeoutError("Execution timed out")
@@ -115,10 +114,12 @@ def execute(code_solution, entry_point, test_function):
     signal.signal(signal.SIGALRM, handler)
     signal.alarm(60)
 
+    glob = {}
+
     try:
-        # WARNING: Using exec
+        # WARNING: Using exec; arbitrary code could be executed if not careful
         # pylint: disable-next=exec-used
-        exec(code)
+        exec(code, glob)
     finally:
         # Disable the alarm
         signal.alarm(0)
@@ -138,6 +139,7 @@ def evaluate_code(dataset, model=None, tokenizer=None):
         entry_point = example["entry_point"]
 
         if model and tokenizer:
+
             instruction_prompt_ids = tokenizer(
                 instruction_prompt, return_tensors="pt"
             ).input_ids.to(device)
@@ -176,20 +178,18 @@ def evaluate_code(dataset, model=None, tokenizer=None):
             # Trim anything after if __name__ == "__main__":
             code_solution = code_solution.split('if __name__ == "__main__":')[0]
         else:
-            code_solution = prompt + example["canonical_solution"]
+            code_solution = example["prompt"] + example["canonical_solution"]
 
         try:
             execute(code_solution, entry_point, test_function)
             passed += 1
-            print("Passed!")
+            tqdm.write("Passed!")
         # pylint: disable=broad-exception-caught
         except Exception as e:
             exception_type = type(e).__name__
-            print(e)
             exception_cnt[exception_type] = exception_cnt.get(exception_type, 0) + 1
-            print(passed, exception_cnt)
+            tqdm.write("Failed with exception: " + exception_type)
             continue
-        print(passed, exception_cnt)
     print(
         f"Accuracy: {passed / len(dataset) * 100}%; Passed: {passed} out of {len(dataset)}"
     )

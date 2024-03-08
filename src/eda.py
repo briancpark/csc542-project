@@ -1,6 +1,5 @@
 """Here lies the exploratory data analysis for the dataset"""
 
-# import torch
 from datasets import load_dataset
 from tqdm import tqdm
 from src.utils import device, load_model
