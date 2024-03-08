@@ -95,6 +95,7 @@ def finetuning(
     os.makedirs("models", exist_ok=True)
     os.makedirs("logs", exist_ok=True)
     display_model_name = model_path.split("/")[-1]
+    losses = []
 
     # Set padding token if it's not already set
     if tokenizer.pad_token is None:
@@ -138,6 +139,7 @@ def finetuning(
             loss.backward()
             optimizer.step()
 
+            losses.append(loss.item())
             pbar_epochs.set_description(f"Epoch {epoch}")
             pbar_batches.set_postfix(
                 {"Loss": loss.item(), "Memory (GB)": allocated_memory()}
@@ -175,6 +177,7 @@ def finetuning(
         "lora_params": model.lora_trainable_params,
         "memory": backprop_mem_consumed,
         "training_time": tok - tik,
+        "losses": losses,
     }
 
     with open(
