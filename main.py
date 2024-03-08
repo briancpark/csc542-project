@@ -1,5 +1,6 @@
 """Main interface to run inference or fine-tuning"""
 
+import os
 import argparse
 import torch
 from src.inference import inference, dataset_inference
@@ -8,6 +9,10 @@ from src.eda import eda
 
 
 if __name__ == "__main__":
+    # Set any environment variables and PyTorch performance settings
+    os.environ["OMP_NUM_THREADS"] = f"{os.cpu_count()}"
+    torch.backends.cudnn.benchmark = True
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--tokenizer", type=str, default="hf-internal-testing/llama-tokenizer"
@@ -40,7 +45,7 @@ if __name__ == "__main__":
     parser.add_argument("--alpha", type=float, default=1.0)
     parser.add_argument("--layers", type=int, default=-1)
     parser.add_argument("--epochs", type=int, default=1)
-    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--lora-checkpoint-path", type=str)
     args = parser.parse_args()

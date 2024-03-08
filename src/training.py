@@ -109,7 +109,13 @@ def finetuning(
     else:
         raise ValueError("Invalid dataset name.")
 
-    data_loader = DataLoader(dataset, batch_size=batch_size)
+    data_loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        pin_memory=True,
+        shuffle=True,
+        num_workers=os.cpu_count(),
+    )
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=5e-5)
 

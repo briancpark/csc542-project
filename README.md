@@ -36,6 +36,5 @@ python3 main.py --eda                               # for exploratory data analy
 
 | Model Name | Layers | Heads | Hidden Size |
 |------------|--------|-------|-------------|
-| LLaMA-160M | 12     | 32    | 768         |
 | LLaMA-1.1B | 22     | 32    | 2048        |
 | LLaMA-7B   | 32     | 32    | 4096        |
