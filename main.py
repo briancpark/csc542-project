@@ -86,7 +86,7 @@ if __name__ == "__main__":
             dropout=args.dropout,
         )
     elif args.eda:
-        # TODO: (bcp) We need to do EDA on the training dataset as well
-        eda(args.model, args.tokenizer, args.test_dataset)
+        eda(args.model, args.tokenizer, args.train_dataset, training=True)
+        eda(args.model, args.tokenizer, args.test_dataset, training=False)
     else:
         raise ValueError("Invalid mode.")

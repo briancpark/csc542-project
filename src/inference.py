@@ -58,8 +58,8 @@ def dataset_inference(
             alpha = float(match.group(2))
             layers = int(match.group(3))
             dropout = float(match.group(4))
-            batch_size = int(match.group(5))
-            epochs = int(match.group(6))
+            # batch_size = int(match.group(5))
+            # epochs = int(match.group(6))
 
             tokenizer, model = load_model(
                 model_path,
@@ -67,8 +67,8 @@ def dataset_inference(
                 lora=True,
                 rank=rank,
                 layers=layers,
-                alpha=alpha,
                 dropout=dropout,
+                alpha=alpha,
                 lora_checkpoint_path=lora_checkpoint_path,
             )
         else:
@@ -154,7 +154,6 @@ def evaluate_code(dataset, model=None, tokenizer=None):
         entry_point = example["entry_point"]
 
         if model and tokenizer:
-
             instruction_prompt_ids = tokenizer(
                 instruction_prompt, return_tensors="pt"
             ).input_ids.to(device)

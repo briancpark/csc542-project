@@ -5,7 +5,7 @@ import torch
 
 from torch.nn import functional as F
 from transformers import (
-    LlamaTokenizer,
+    LlamaTokenizerFast,
     AutoModelForCausalLM,
 )
 from src.lora import LLaMAModelWithLoRA
@@ -14,7 +14,9 @@ from src.lora import LLaMAModelWithLoRA
 device = torch.device(
     "mps"
     if torch.backends.mps.is_available()
-    else "cuda" if torch.cuda.is_available() else "cpu"
+    else "cuda"
+    if torch.cuda.is_available()
+    else "cpu"
 )
 
 """
@@ -64,7 +66,7 @@ def load_model(
     lora_checkpoint_path=None,
 ):
     """Load the tokenizer and model"""
-    tokenizer = LlamaTokenizer.from_pretrained(tokenizer_path)
+    tokenizer = LlamaTokenizerFast.from_pretrained(tokenizer_path)
 
     if lora:
         model = LLaMAModelWithLoRA(
