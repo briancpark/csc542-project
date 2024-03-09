@@ -49,7 +49,8 @@ class AlpacaHFDataSet(Dataset):
         self.examples = []
 
         # Iterate through the dataset and prepare the inputs and labels
-        for prompt in hf_dataset["prompt"]:
+        for instruction, output in zip(hf_dataset["instruction"], hf_dataset["output"]):
+            prompt = '"""' + instruction + '"""\n' + output
             self.examples.append(
                 tokenizer(
                     prompt,
@@ -92,7 +93,8 @@ def finetuning(
         alpha=alpha,
     )
 
-    os.makedirs("models", exist_ok=True)
+    models_dir = os.path.join(os.environ["HF_HOME"], "models")
+    os.makedirs(models_dir, exist_ok=True)
     os.makedirs("logs", exist_ok=True)
     display_model_name = model_path.split("/")[-1]
     losses = []
@@ -104,8 +106,10 @@ def finetuning(
     if dataset_name == "openai_humaneval":
         dataset = load_dataset("openai_humaneval", split="test")
         dataset = HumanEvalHFDataSet(tokenizer, dataset)
-    elif dataset_name == "iamtarun/code_instructions_120k_alpaca":
-        dataset = load_dataset("iamtarun/code_instructions_120k_alpaca", split="train")
+    elif dataset_name == "iamtarun/python_code_instructions_18k_alpaca":
+        dataset = load_dataset(
+            "iamtarun/python_code_instructions_18k_alpaca", split="train"
+        )
         dataset = AlpacaHFDataSet(tokenizer, dataset)
     else:
         raise ValueError("Invalid dataset name.")
@@ -146,7 +150,7 @@ def finetuning(
             )
         # checkpoint model at every epoch
         model_chk_path = (
-            f"models/codellama_{display_model_name}_r{rank}_a{alpha}_"
+            f"{models_dir}/codellama_{display_model_name}_r{rank}_a{alpha}_"
             f"l{layers}_d{dropout}_b{batch_size}_e{epoch}.pt"
         )
         torch.save(model.state_dict(), model_chk_path)
@@ -155,10 +159,10 @@ def finetuning(
 
     tok = torch_timer()
     model_chk_base = (
-        f"models/codellama_{display_model_name}_r{rank}_a{alpha}_"
+        f"codellama_{display_model_name}_r{rank}_a{alpha}_"
         f"l{layers}_d{dropout}_b{batch_size}_e{epochs}_final"
     )
-    model_chk_path = f"{model_chk_base}.pt"
+    model_chk_path = f"{models_dir}/{model_chk_base}.pt"
     torch.save(model.state_dict(), model_chk_path)
 
     # Run inference over the test dataset and log the results
@@ -182,10 +186,5 @@ def finetuning(
         "losses": losses,
     }
 
-    model_chk_path = (
-        f"models/codellama_{display_model_name}_r{rank}_a{alpha}_"
-        f"l{layers}_d{dropout}_b{batch_size}_e{epochs}_final.pt"
-    )
-
-    with open(f"{model_chk_base}.json", "w", encoding="utf-8") as f:
+    with open(f"logs/{model_chk_base}.json", "w", encoding="utf-8") as f:
         json.dump(results, f, indent=4)

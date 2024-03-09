@@ -1,5 +1,6 @@
 """Here lies the inference code for the model"""
 
+import re
 import signal
 import torch
 from tqdm import tqdm
@@ -48,16 +49,30 @@ def dataset_inference(
 ):
     """Run inference on the model over a dataset"""
     if lora_checkpoint_path:
-        tokenizer, model = load_model(
-            model_path,
-            tokenizer_path,
-            lora=True,
-            rank=8,
-            layers=-1,
-            alpha=1.0,
-            dropout=0.1,
-            lora_checkpoint_path=lora_checkpoint_path,
+        match = re.search(
+            r"_r(\d+)_a(\d+\.\d+)_l(\d+)_d(\d+\.\d+)_b(\d+)_e(\d+)_",
+            lora_checkpoint_path,
         )
+        if match:
+            rank = int(match.group(1))
+            alpha = float(match.group(2))
+            layers = int(match.group(3))
+            dropout = float(match.group(4))
+            batch_size = int(match.group(5))
+            epochs = int(match.group(6))
+
+            tokenizer, model = load_model(
+                model_path,
+                tokenizer_path,
+                lora=True,
+                rank=rank,
+                layers=layers,
+                alpha=alpha,
+                dropout=dropout,
+                lora_checkpoint_path=lora_checkpoint_path,
+            )
+        else:
+            raise ValueError("Invalid LoRA checkpoint path or invalid file formatting.")
     else:
         tokenizer, model = load_model(
             model_path,

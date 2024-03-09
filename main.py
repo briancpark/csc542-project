@@ -30,7 +30,9 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", type=str, default="openai_humaneval")
     parser.add_argument("--test-dataset", type=str, default="openai_humaneval")
     parser.add_argument(
-        "--train-dataset", type=str, default="iamtarun/code_instructions_120k_alpaca"
+        "--train-dataset",
+        type=str,
+        default="iamtarun/python_code_instructions_18k_alpaca",
     )
     parser.add_argument(
         "--prompt",
@@ -45,8 +47,8 @@ if __name__ == "__main__":
     parser.add_argument("--rank", type=int, default=8)
     parser.add_argument("--alpha", type=float, default=1.0)
     parser.add_argument("--layers", type=int, default=-1)
-    parser.add_argument("--epochs", type=int, default=1)
-    parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--lora-checkpoint-path", type=str)
     args = parser.parse_args()
