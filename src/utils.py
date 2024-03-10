@@ -65,6 +65,8 @@ def load_model(
 ):
     """Load the tokenizer and model"""
     tokenizer = LlamaTokenizerFast.from_pretrained(tokenizer_path)
+    tokenizer.pad_token = "[PAD]"
+    tokenizer.padding_side = "left"
 
     if lora:
         model = LLaMAModelWithLoRA(
@@ -119,7 +121,6 @@ def allocated_memory():
     """Print the allocated memory in GB"""
     if device.type == "mps":
         return torch.mps.driver_allocated_memory() / 1e9
-        # return torch.mps.current_allocated_memory() / 1e9
     if device.type == "cuda":
         return torch.cuda.memory_reserved() / 1e9
     return float("nan")

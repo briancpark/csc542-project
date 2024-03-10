@@ -29,6 +29,7 @@ python3 main.py --inference -p \
 python3 main.py --inference-evaluate                # for evaluating inference on the whole dataset
 python3 main.py --finetuning                        # for finetuning/training with LoRA
 python3 main.py --eda                               # for exploratory data analysis
+python3 main.py --hyperparameter-tune               # for hyperparameter tuning
 ```
 
 

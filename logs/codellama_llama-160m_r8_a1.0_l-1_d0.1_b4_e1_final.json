@@ -1,0 +1,13 @@
+{
+    "accuracy": 0.0,
+    "exception_cnt": {
+        "SyntaxError": 121,
+        "IndentationError": 42,
+        "TabError": 1
+    },
+    "loss": 1.5091607570648193,
+    "params": 162417408,
+    "lora_params": 49152768,
+    "memory": 47.352250368,
+    "training_time": 3428.70542771928
+}

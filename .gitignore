@@ -2,6 +2,8 @@
 .DS_Store
 .vscode/
 models/
+*.e*
+*.o*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

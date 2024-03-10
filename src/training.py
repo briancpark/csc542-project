@@ -26,7 +26,7 @@ class HumanEvalHFDataSet(Dataset):
                 tokenizer(
                     full_text,
                     truncation=True,
-                    padding="max_length",  # Add this line
+                    padding="max_length",
                     max_length=block_size,
                     return_tensors="pt",
                 )
@@ -55,7 +55,7 @@ class AlpacaHFDataSet(Dataset):
                 tokenizer(
                     prompt,
                     truncation=True,
-                    padding="max_length",  # Add this line
+                    padding="max_length",
                     max_length=block_size,
                     return_tensors="pt",
                 )
@@ -122,7 +122,7 @@ def finetuning(
         num_workers=os.cpu_count(),
     )
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=5e-5)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
 
     model.train()
     pbar_epochs = tqdm(range(epochs), desc="Epochs")
@@ -188,3 +188,5 @@ def finetuning(
 
     with open(f"logs/{model_chk_base}.json", "w", encoding="utf-8") as f:
         json.dump(results, f, indent=4)
+
+    return accuracy

@@ -73,10 +73,10 @@ class LLaMAModelWithLoRA(nn.Module):
         self.num_layers = self.llama_model.config.num_hidden_layers
         self.hidden_size = self.llama_model.config.hidden_size
 
-        if lora_layers == -1:
-            lora_layers = 0
-        else:
-            lora_layers = self.num_layers - lora_layers
+        if lora_layers > self.num_layers:
+            raise ValueError(
+                "LoRA layers cannot exceed the number of transformer layers."
+            )
 
         self.trainable_params = sum(
             p.numel() for p in self.llama_model.parameters() if p.requires_grad
@@ -95,7 +95,7 @@ class LLaMAModelWithLoRA(nn.Module):
             for param in layer.parameters():
                 param.requires_grad = False
 
-            if i > lora_layers:
+            if i > self.num_layers - lora_layers:
                 # According to the paper, they only enable LoRA for q_proj and v_proj
                 # print(layer)
                 q_shape = layer.self_attn.q_proj.weight.shape

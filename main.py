@@ -6,12 +6,14 @@ import torch
 from src.inference import inference, dataset_inference
 from src.training import finetuning
 from src.eda import eda
-
+from src.tune import hpo_tune
 
 if __name__ == "__main__":
     # Set any environment variables and PyTorch performance settings
+    if torch.cuda.is_available():
+        torch.backends.cudnn.benchmark = True
     os.environ["OMP_NUM_THREADS"] = f"{os.cpu_count()}"
-    torch.backends.cudnn.benchmark = True
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
     torch.manual_seed(1337)
 
     parser = argparse.ArgumentParser()
@@ -43,14 +45,16 @@ if __name__ == "__main__":
     parser.add_argument("--inference", action="store_true")
     parser.add_argument("--inference-evaluate", action="store_true")
     parser.add_argument("--finetuning", action="store_true")
+    parser.add_argument("--hyperparameter-tune", action="store_true")
     parser.add_argument("--eda", action="store_true")
-    parser.add_argument("--rank", type=int, default=8)
-    parser.add_argument("--alpha", type=float, default=1.0)
-    parser.add_argument("--layers", type=int, default=-1)
+    parser.add_argument("--rank", type=int, default=16)
+    parser.add_argument("--alpha", type=float, default=16.0)
+    parser.add_argument("--layers", type=int, default=22)
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--lora-checkpoint-path", type=str)
+    parser.add_argument("--debug", "-d", action="store_true")
     args = parser.parse_args()
 
     # Run inference on a single prompt
@@ -85,6 +89,8 @@ if __name__ == "__main__":
             layers=args.layers,
             dropout=args.dropout,
         )
+    elif args.hyperparameter_tune:
+        hpo_tune(args.model, args.tokenizer, args.train_dataset, args.test_dataset)
     elif args.eda:
         eda(args.model, args.tokenizer, args.train_dataset, training=True)
         eda(args.model, args.tokenizer, args.test_dataset, training=False)

@@ -2,6 +2,7 @@ torch
 torchvision
 torchaudio
 transformers
+evaluate
 black>=24.0
 pylint
 sentencepiece
@@ -12,5 +13,6 @@ matplotlib
 numpy
 pandas
 wordcloud
+ray
 flash-attn; sys_platform == "x86_64"
 mlx; sys_platform == "darwin" # This is Apple Silicon only
