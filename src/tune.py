@@ -26,7 +26,7 @@ def hpo_tune(model_path, tokenizer_path, train_dataset_name, test_dataset_name):
 
     ray.init()
 
-    r = ray.remote(num_gpus=1, num_returns=2)
+    r = ray.remote(num_gpus=1)
     ray_finetune = r(finetuning)
 
     oids = []
