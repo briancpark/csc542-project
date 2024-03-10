@@ -1,15 +1,17 @@
 #!/bin/bash
-#SBATCH -N 12
+#SBATCH -N 4
 #SBATCH --cpus-per-task=16
 #SBATCH --tasks-per-node=1
-#SBATCH -p rtx2060super
+#SBATCH -p max
+#SBATCH -w c[21,27,28,29]
 #SBATCH -J lora-tune
 #SBATCH -o lora-tune.o%j
 #SBATCH -e lora-tune.e%j
 
 
+####### #SBATCH -p rtx2060super
 ####### #SBATCH -p max
-####### #SBATCH -w c[20,21,22,37,41,44]
+####### #SBATCH -w c[20,21,26,27,28,29]
 
 source ~/.bashrc
 conda activate csc542
