@@ -22,8 +22,19 @@ pip install -r requirements.txt
 ## Running the Code
 
 ```sh
-python3 main.py -h  # for help
-python3 main.py --inference # for inference
-python3 main.py --inference --test-dataset # for testing the model
-python3 main.py --finetuning # for finetuning/training with LoRA
+python3 main.py -h                                  # for help
+python3 main.py --inference                         # for inference on a single prompt
+python3 main.py --inference -p \ 
+        "Question: Write 3sum in Python: Answer:\n" # for inference on a custom prompt
+python3 main.py --inference-evaluate                # for evaluating inference on the whole dataset
+python3 main.py --finetuning                        # for finetuning/training with LoRA
+python3 main.py --eda                               # for exploratory data analysis
 ```
+
+
+## Model Card
+
+| Model Name | Layers | Heads | Hidden Size |
+|------------|--------|-------|-------------|
+| LLaMA-1.1B | 22     | 32    | 2048        |
+| LLaMA-7B   | 32     | 32    | 4096        |

@@ -11,5 +11,6 @@ bitsandbytes
 matplotlib
 numpy
 pandas
+wordcloud
 flash-attn; sys_platform == "x86_64"
 mlx; sys_platform == "darwin" # This is Apple Silicon only

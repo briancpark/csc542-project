@@ -24,7 +24,11 @@ M2 Apple Silicon and after also support BF16 (CPU and GPU)
 Don't attempt to use FP16 on CPU, as it's not supported for GEMM
 """
 if device.type == "cuda":
-    dtype = torch.bfloat16
+    # detect if GPU is capable of BF16
+    if torch.cuda.get_device_capability(0)[0] >= 8:
+        dtype = torch.bfloat16
+    else:
+        dtype = torch.float16
 elif device.type == "mps":
     dtype = torch.float16
 else:
@@ -49,7 +53,16 @@ def torch_timer():
     return time.perf_counter()
 
 
-def load_model(model_path, tokenizer_path, lora=False, rank=4):
+def load_model(
+    model_path,
+    tokenizer_path,
+    lora=False,
+    rank=4,
+    layers=4,
+    alpha=1.0,
+    dropout=0.0,
+    lora_checkpoint_path=None,
+):
     """Load the tokenizer and model"""
     tokenizer = LlamaTokenizerFast.from_pretrained(tokenizer_path)
 
@@ -57,13 +70,21 @@ def load_model(model_path, tokenizer_path, lora=False, rank=4):
         model = LLaMAModelWithLoRA(
             model_path,
             rank=rank,
+            layers=layers,
+            alpha=alpha,
+            dropout=dropout,
             # load_in_4bit=True,
             # load_in_8bit=True,
             # bnb_4bit_compute_dtype=torch.bfloat16,
             # attn_implementation="flash_attention_2",
-            torch_dtype=torch.float32,
+            torch_dtype=dtype,
             device_map=device,
         )
+
+        if lora_checkpoint_path:
+            # Reserialize the model, to make it platform agnostic
+            model.load_state_dict(torch.load(lora_checkpoint_path, map_location="cpu"))
+            model.to(device)
 
     else:
         model = AutoModelForCausalLM.from_pretrained(
@@ -75,16 +96,16 @@ def load_model(model_path, tokenizer_path, lora=False, rank=4):
             torch_dtype=dtype,
             device_map=device,
         )
-        model.eval()
+    model.eval()
 
     return tokenizer, model
 
 
-def sample(p, determinsitic=False):
+def sample(p, deterministic=False):
     """Sample logits from a distribution or take the argmax"""
-    if determinsitic:
-        return torch.multinomial(p, 1)
-    return torch.argmax(p).unsqueeze(0).unsqueeze(0)
+    if deterministic:
+        return torch.argmax(p).unsqueeze(0).unsqueeze(0)
+    return torch.multinomial(p, 1)
 
 
 def norm_logits(logits, temperature, eps=1e-10):
@@ -92,3 +113,13 @@ def norm_logits(logits, temperature, eps=1e-10):
     logits = logits / (temperature + eps)
     logits = F.softmax(logits, dim=1)
     return logits
+
+
+def allocated_memory():
+    """Print the allocated memory in GB"""
+    if device.type == "mps":
+        return torch.mps.driver_allocated_memory() / 1e9
+        # return torch.mps.current_allocated_memory() / 1e9
+    if device.type == "cuda":
+        return torch.cuda.memory_reserved() / 1e9
+    return float("nan")
