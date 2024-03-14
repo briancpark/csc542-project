@@ -81,6 +81,7 @@ def finetuning(
     alpha=1.0,
     layers=4,
     dropout=0.0,
+    lr=1e-4,
 ):
     """Training loop to fine-tune the model"""
     tokenizer, model = load_model(
@@ -122,7 +123,7 @@ def finetuning(
         num_workers=os.cpu_count(),
     )
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
 
     model.train()
     pbar_epochs = tqdm(range(epochs), desc="Epochs")

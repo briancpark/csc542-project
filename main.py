@@ -53,6 +53,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--dropout", type=float, default=0.1)
+    parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--lora-checkpoint-path", type=str)
     parser.add_argument("--debug", "-d", action="store_true")
     args = parser.parse_args()
@@ -88,6 +89,7 @@ if __name__ == "__main__":
             alpha=args.alpha,
             layers=args.layers,
             dropout=args.dropout,
+            lr=args.lr,
         )
     elif args.hyperparameter_tune:
         hpo_tune(args.model, args.tokenizer, args.train_dataset)

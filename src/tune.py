@@ -28,23 +28,25 @@ def hpo_tune(model_path, tokenizer_path, train_dataset_name):
         for alpha in params["alpha"]:
             for layers in params["layers"]:
                 for dropout in params["dropout"]:
-                    try:
-                        oids.append(
-                            ray_finetune.remote(
-                                model_path,
-                                tokenizer_path,
-                                train_dataset_name,
-                                epochs=1,
-                                batch_size=1,
-                                rank=rank,
-                                alpha=alpha,
-                                layers=layers,
-                                dropout=dropout,
+                    for lr in params["lr"]:
+                        try:
+                            oids.append(
+                                ray_finetune.remote(
+                                    model_path,
+                                    tokenizer_path,
+                                    train_dataset_name,
+                                    epochs=10,
+                                    batch_size=2,
+                                    rank=rank,
+                                    alpha=alpha,
+                                    layers=layers,
+                                    dropout=dropout,
+                                    lr=lr,
+                                )
                             )
-                        )
-                    # pylint: disable=broad-except
-                    except Exception as e:
-                        print(e)
+                        # pylint: disable=broad-except
+                        except Exception as e:
+                            print(e)
 
     results = ray.get(oids)
 
