@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH -N 4
+#SBATCH -N 5
 #SBATCH --cpus-per-task=16
 #SBATCH --tasks-per-node=1
 #SBATCH -p max
-#SBATCH -w c[21,27,28,29]
+#SBATCH -w c[22,26,27,28,29]
 #SBATCH -J lora-tune
 #SBATCH -o lora-tune.o%j
 #SBATCH -e lora-tune.e%j
@@ -11,8 +11,10 @@
 
 ####### #SBATCH -p rtx2060super
 ####### #SBATCH -p max
-####### #SBATCH -w c[20,21,26,27,28,29]
-
+####### #SBATCH -w c[21,26,27,28,29]
+# [20-22,26-29], queue: -p rtx4060ti8g
+########### SBATCH -w c[20,21,26,27,28,29]
+#25
 source ~/.bashrc
 conda activate csc542
 cd /home/bcpark/csc542-project
@@ -43,7 +45,7 @@ echo "IP Head: $ip_head"
 echo "Starting HEAD at $head_node"
 srun --nodes=1 --ntasks=1 -w "$head_node" \
     ray start --head --node-ip-address="$head_node_ip" --port=$port \
-    --num-cpus 32 --block &
+    --num-cpus 32 --num-gpus 1 --block &
 
 # optional, though may be useful in certain versions of Ray < 1.0.
 sleep 10
@@ -56,7 +58,7 @@ for ((i = 1; i <= worker_num; i++)); do
     echo "Starting WORKER $i at $node_i"
     srun --nodes=1 --ntasks=1 -w "$node_i" \
         ray start --address "$ip_head" \
-        --num-cpus 32 --block &
+        --num-cpus 32 --num-gpus 1 --block &
     sleep 5
 done
 # "${SLURM_CPUS_PER_TASK}"

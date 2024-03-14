@@ -1,21 +1,14 @@
 """Hyperparameter tuning for the model"""
 
-import os
 import json
-import torch
 import ray
-from datasets import load_dataset
-from torch.utils.data import Dataset, DataLoader
-from tqdm import tqdm
-from src.utils import device, load_model, allocated_memory, torch_timer
-from src.inference import dataset_inference
 from src.training import finetuning
 
 
-def hpo_tune(model_path, tokenizer_path, train_dataset_name, test_dataset_name):
+def hpo_tune(model_path, tokenizer_path, train_dataset_name):
     """Hyperparameter tuning. Mainly performs a grid search"""
 
-    with open("config/param_grid.json", "r") as f:
+    with open("config/param_grid.json", "r", encoding="utf-8") as f:
         params = json.load(f)
 
     total_search_space = 1
@@ -35,19 +28,23 @@ def hpo_tune(model_path, tokenizer_path, train_dataset_name, test_dataset_name):
         for alpha in params["alpha"]:
             for layers in params["layers"]:
                 for dropout in params["dropout"]:
-                    oids.append(
-                        ray_finetune.remote(
-                            model_path,
-                            tokenizer_path,
-                            train_dataset_name,
-                            epochs=30,
-                            batch_size=2,
-                            rank=rank,
-                            alpha=alpha,
-                            layers=layers,
-                            dropout=dropout,
+                    try:
+                        oids.append(
+                            ray_finetune.remote(
+                                model_path,
+                                tokenizer_path,
+                                train_dataset_name,
+                                epochs=1,
+                                batch_size=1,
+                                rank=rank,
+                                alpha=alpha,
+                                layers=layers,
+                                dropout=dropout,
+                            )
                         )
-                    )
+                    # pylint: disable=broad-except
+                    except Exception as e:
+                        print(e)
 
     results = ray.get(oids)
 

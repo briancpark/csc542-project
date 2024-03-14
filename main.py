@@ -90,7 +90,7 @@ if __name__ == "__main__":
             dropout=args.dropout,
         )
     elif args.hyperparameter_tune:
-        hpo_tune(args.model, args.tokenizer, args.train_dataset, args.test_dataset)
+        hpo_tune(args.model, args.tokenizer, args.train_dataset)
     elif args.eda:
         eda(args.model, args.tokenizer, args.train_dataset, training=True)
         eda(args.model, args.tokenizer, args.test_dataset, training=False)

@@ -173,6 +173,8 @@ def finetuning(
         tokenizer_path,
         "openai_humaneval",
         lora_checkpoint_path=model_chk_path,
+        model=model,
+        tokenizer=tokenizer,
     )
 
     results = {
@@ -188,5 +190,8 @@ def finetuning(
 
     with open(f"logs/{model_chk_base}.json", "w", encoding="utf-8") as f:
         json.dump(results, f, indent=4)
+
+    # Taking extra precation when running with multi-gpu
+    torch.cuda.empty_cache()
 
     return accuracy
