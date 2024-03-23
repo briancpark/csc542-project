@@ -54,6 +54,7 @@ def dataset_inference(
 ):
     """Run inference on the model over a dataset"""
     if lora_checkpoint_path and model is None and tokenizer is None:
+        # LOAD INTERMEDIATE
         match = re.search(
             r"_r(\d+)_a(\d+\.\d+)_l(\d+)_d(\d+\.\d+)_b(\d+)_e(\d+)_",
             lora_checkpoint_path,
@@ -77,9 +78,14 @@ def dataset_inference(
                 lora_checkpoint_path=lora_checkpoint_path,
             )
 
+        # match = re.search(
+        #     r"codellama_TinyLlama-1.1B-intermediate-step",
+        #     r"-\d+k-3T",
+        #     r"_r(\d+)_a(\d+)_l(\d+)_d([0-9.]+)_b\d+_e\d+_final.pt",
+        #     lora_checkpoint_path,
+        # )
         match = re.search(
-            r"codellama_TinyLlama-1.1B-intermediate-step",
-            r"-\d+k-3T_r(\d+)_a(\d+)_l(\d+)_d([0-9.]+)_b\d+_e\d+_final.pt",
+            r"_r(\d+)_a([0-9.]+)_l(\d+)_d([0-9.]+)_b\d+_e\d+_lr([0-9.e+-]+)_",
             lora_checkpoint_path,
         )
         if match:
@@ -89,6 +95,7 @@ def dataset_inference(
             dropout = float(match.group(4))
             # batch_size = int(match.group(5))
             # epochs = int(match.group(6))
+            lr = float(match.group(5))
 
             tokenizer, model = load_model(
                 model_path,
