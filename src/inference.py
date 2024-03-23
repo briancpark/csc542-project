@@ -95,7 +95,7 @@ def dataset_inference(
             dropout = float(match.group(4))
             # batch_size = int(match.group(5))
             # epochs = int(match.group(6))
-            lr = float(match.group(5))
+            # lr = float(match.group(5))
 
             tokenizer, model = load_model(
                 model_path,

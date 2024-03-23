@@ -108,33 +108,42 @@ def finetuning(
     if dataset_name == "openai_humaneval":
         dataset = load_dataset("openai_humaneval", split="test")
         dataset = HumanEvalHFDataSet(tokenizer, dataset)
-        
+
     elif dataset_name == "iamtarun/python_code_instructions_18k_alpaca":
         dataset = load_dataset(
             "iamtarun/python_code_instructions_18k_alpaca", split="train"
         )
         # dataset = AlpacaHFDataSet(tokenizer, dataset)
-        
+
         def combine_columns(example):
-            instruction_prompt = (
-                """Complete the following Python code without any tests or explanation\n"""
-            )
+            # instruction_prompt = """Complete the following Python
+            # code without any tests or explanation\n"""
             # instruction_prompt +
-            return {'prompts':  '"""' + example['instruction'] + '"""\n' + example['output']}
+            return {
+                "prompts": '"""' + example["instruction"] + '"""\n' + example["output"]
+            }
 
         dataset = dataset.map(combine_columns)
-            
-        def preprocess_function(examples):      
-            return tokenizer(examples["prompts"], padding="max_length", truncation=True, max_length=512, return_tensors='pt')
 
-        dataset = dataset.map(preprocess_function, batched=True, remove_columns=dataset.column_names)
+        def preprocess_function(examples):
+            return tokenizer(
+                examples["prompts"],
+                padding="max_length",
+                truncation=True,
+                max_length=512,
+                return_tensors="pt",
+            )
+
+        dataset = dataset.map(
+            preprocess_function, batched=True, remove_columns=dataset.column_names
+        )
     else:
         raise ValueError("Invalid dataset name.")
 
     def collate_fn(batch):
-        input_ids = [LongTensor(item['input_ids']) for item in batch]
+        input_ids = [LongTensor(item["input_ids"]) for item in batch]
         input_ids = nn.utils.rnn.pad_sequence(input_ids, batch_first=True)
-        return {'input_ids': input_ids}
+        return {"input_ids": input_ids}
 
     data_loader = DataLoader(
         dataset,
@@ -173,7 +182,7 @@ def finetuning(
             pbar_batches.set_postfix(
                 {"Loss": loss.item(), "Memory (GB)": allocated_memory()}
             )
-      
+
         # checkpoint model at every epoch
         model_chk_path = (
             f"{models_dir}/codellama_{display_model_name}_r{rank}_a{alpha}_"
@@ -193,7 +202,7 @@ def finetuning(
 
     # Run inference over the test dataset and log the results
     torch.cuda.empty_cache()
-    
+
     model.eval()
     accuracy, execption_cnt = dataset_inference(
         model_path,
