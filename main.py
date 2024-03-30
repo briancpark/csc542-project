@@ -23,12 +23,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        default="TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T",
+        # default="TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T",
+        default="TinyLlama/TinyLlama-1.1B-intermediate-step-1195k-token-2.5T",
         # default="codellama/CodeLlama-7b-hf",
     )
     parser.add_argument("--temperature", "-t", type=float, default=0.0)
-    parser.add_argument("--gamma", "-g", type=int, default=4)
-    parser.add_argument("--n-tokens-to-generate", "-N", type=int, default=150)
+    parser.add_argument("--n-tokens-to-generate", "-N", type=int, default=500)
     parser.add_argument("--dataset", type=str, default="openai_humaneval")
     parser.add_argument("--test-dataset", type=str, default="openai_humaneval")
     parser.add_argument(
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     parser.add_argument("--rank", type=int, default=32)
     parser.add_argument("--alpha", type=float, default=16.0)
     parser.add_argument("--layers", type=int, default=22)
-    parser.add_argument("--epochs", type=int, default=50)
+    parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--lr", type=float, default=1e-5)
@@ -76,6 +76,8 @@ if __name__ == "__main__":
                 args.model,
                 args.tokenizer,
                 args.test_dataset,
+                temperature=args.temperature,
+                N=args.n_tokens_to_generate,
                 lora_checkpoint_path=args.lora_checkpoint_path,
             )
     elif args.finetuning:

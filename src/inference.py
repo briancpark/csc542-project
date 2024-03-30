@@ -51,6 +51,8 @@ def dataset_inference(
     lora_checkpoint_path=None,
     model=None,
     tokenizer=None,
+    temperature=0.0,
+    N=500,
 ):
     """Run inference on the model over a dataset"""
     if lora_checkpoint_path and model is None and tokenizer is None:
@@ -123,7 +125,9 @@ def dataset_inference(
     else:
         raise ValueError("Invalid dataset name.")
 
-    return evaluate_code(examples, model=model, tokenizer=tokenizer)
+    return evaluate_code(
+        examples, model=model, tokenizer=tokenizer, temperature=temperature, N=N
+    )
 
 
 def autoregressive_sampling(
@@ -131,7 +135,7 @@ def autoregressive_sampling(
     model,
     tokenizer,
     N,
-    temperature=1.0,
+    temperature=0.0,
 ):
     """Autoregressive sampling from the model in inference mode"""
     n = input_ids.shape[1]
@@ -140,7 +144,6 @@ def autoregressive_sampling(
     while n < T:
         outputs = model(input_ids)
         logits = outputs.logits[::, -1, :]
-        # Apply repetition penalty
         p = norm_logits(logits[-1:, :], temperature)
         next_token_id = sample(p, deterministic=True)
         # Add the generated token to the set of generated tokens
@@ -179,11 +182,10 @@ def execute(code_solution, entry_point, test_function):
         signal.alarm(0)
 
 
-def evaluate_code(dataset, model=None, tokenizer=None):
+def evaluate_code(dataset, model=None, tokenizer=None, temperature=0.0, N=500):
     """Evaluate the code by running it"""
-    instruction_prompt = (
-        """Complete the following Python code without any tests or explanation\n"""
-    )
+    instruction_prompt = "Please complete the following Python code without providing any \
+                          additional tasks such as testing or explanations\n"
     passed = 0
     exception_cnt = {}
 
@@ -208,8 +210,8 @@ def evaluate_code(dataset, model=None, tokenizer=None):
                 inputs,
                 model,
                 tokenizer,
-                N=inputs_idx + 250,
-                temperature=0.0,
+                N=N,
+                temperature=temperature,
             )
             tok = torch_timer()
 

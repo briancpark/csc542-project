@@ -112,7 +112,8 @@ def sample(p, deterministic=False):
 
 def norm_logits(logits, temperature, eps=1e-10):
     """Normalize the logits"""
-    logits = logits / (temperature + eps)
+    if temperature:
+        logits = logits / (temperature + eps)
     logits = F.softmax(logits, dim=1)
     return logits
 
