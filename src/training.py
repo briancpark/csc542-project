@@ -5,71 +5,10 @@ import json
 import torch
 from datasets import load_dataset
 from torch import nn, LongTensor
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 from src.utils import device, load_model, allocated_memory, torch_timer
 from src.inference import dataset_inference
-
-
-class HumanEvalHFDataSet(Dataset):
-    """Human Eval dataset for Hugging Face"""
-
-    def __init__(self, tokenizer, hf_dataset, block_size=512):
-        self.examples = []
-
-        # Iterate through the dataset and prepare the inputs and labels
-        for prompt, solution in zip(
-            hf_dataset["prompt"], hf_dataset["canonical_solution"]
-        ):
-            # Concatenate prompt and solution for the full context
-            full_text = prompt + solution
-            self.examples.append(
-                tokenizer(
-                    full_text,
-                    truncation=True,
-                    padding="max_length",
-                    max_length=block_size,
-                    return_tensors="pt",
-                )
-            )
-
-        self.block_size = block_size
-
-    def __len__(self):
-        return len(self.examples)
-
-    def __getitem__(self, idx):
-        # Here, each item is a dictionary of tensors
-        return {key: val.squeeze(0) for key, val in self.examples[idx].items()}
-
-
-class AlpacaHFDataSet(Dataset):
-    """Alpaca dataset for Hugging Face"""
-
-    def __init__(self, tokenizer, hf_dataset, block_size=600):
-        self.examples = []
-
-        # Iterate through the dataset and prepare the inputs and labels
-        for instruction, output in zip(hf_dataset["instruction"], hf_dataset["output"]):
-            prompt = '"""' + instruction + '"""\n' + output
-            self.examples.append(
-                tokenizer(
-                    prompt,
-                    truncation=True,
-                    padding="max_length",
-                    max_length=block_size,
-                    return_tensors="pt",
-                )
-            )
-
-        self.block_size = block_size
-
-    def __len__(self):
-        return len(self.examples)
-
-    def __getitem__(self, idx):
-        # Here, each item is a dictionary of tensors
-        return {key: val.squeeze(0) for key, val in self.examples[idx].items()}
 
 
 def finetuning(
@@ -105,20 +44,12 @@ def finetuning(
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    if dataset_name == "openai_humaneval":
-        dataset = load_dataset("openai_humaneval", split="test")
-        dataset = HumanEvalHFDataSet(tokenizer, dataset)
-
-    elif dataset_name == "iamtarun/python_code_instructions_18k_alpaca":
+    if dataset_name == "iamtarun/python_code_instructions_18k_alpaca":
         dataset = load_dataset(
             "iamtarun/python_code_instructions_18k_alpaca", split="train"
         )
-        # dataset = AlpacaHFDataSet(tokenizer, dataset)
 
         def combine_columns(example):
-            # instruction_prompt = """Complete the following Python
-            # code without any tests or explanation\n"""
-            # instruction_prompt +
             return {
                 "prompts": '"""' + example["instruction"] + '"""\n' + example["output"]
             }

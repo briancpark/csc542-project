@@ -53,6 +53,7 @@ def dataset_inference(
     tokenizer=None,
     temperature=0.0,
     N=500,
+    instruction_prompt=None,
 ):
     """Run inference on the model over a dataset"""
     if lora_checkpoint_path and model is None and tokenizer is None:
@@ -126,7 +127,12 @@ def dataset_inference(
         raise ValueError("Invalid dataset name.")
 
     return evaluate_code(
-        examples, model=model, tokenizer=tokenizer, temperature=temperature, N=N
+        examples,
+        model=model,
+        tokenizer=tokenizer,
+        temperature=temperature,
+        N=N,
+        instruction_prompt=instruction_prompt,
     )
 
 
@@ -182,10 +188,10 @@ def execute(code_solution, entry_point, test_function):
         signal.alarm(0)
 
 
-def evaluate_code(dataset, model=None, tokenizer=None, temperature=0.0, N=500):
+def evaluate_code(
+    dataset, model=None, tokenizer=None, temperature=0.0, N=500, instruction_prompt=None
+):
     """Evaluate the code by running it"""
-    instruction_prompt = "Please complete the following Python code without providing any \
-                          additional tasks such as testing or explanations\n"
     passed = 0
     exception_cnt = {}
 

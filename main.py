@@ -42,6 +42,13 @@ if __name__ == "__main__":
         type=str,
         default="Question: Write the fibonacci sequence in Python. \nAnswer: def fibonacci(n):",
     )
+    parser.add_argument(
+        "--instruction-prompt",
+        "-ip",
+        type=str,
+        default="Please complete the following Python code without providing any \
+                          additional tasks such as testing or explanations\n",
+    )
     parser.add_argument("--inference", action="store_true")
     parser.add_argument("--inference-evaluate", action="store_true")
     parser.add_argument("--finetuning", action="store_true")
@@ -79,6 +86,7 @@ if __name__ == "__main__":
                 temperature=args.temperature,
                 N=args.n_tokens_to_generate,
                 lora_checkpoint_path=args.lora_checkpoint_path,
+                instruction_prompt=args.instruction_prompt,
             )
     elif args.finetuning:
         finetuning(
