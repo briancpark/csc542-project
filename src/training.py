@@ -4,71 +4,11 @@ import os
 import json
 import torch
 from datasets import load_dataset
-from torch.utils.data import Dataset, DataLoader
+from torch import nn, LongTensor
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 from src.utils import device, load_model, allocated_memory, torch_timer
 from src.inference import dataset_inference
-
-
-class HumanEvalHFDataSet(Dataset):
-    """Human Eval dataset for Hugging Face"""
-
-    def __init__(self, tokenizer, hf_dataset, block_size=512):
-        self.examples = []
-
-        # Iterate through the dataset and prepare the inputs and labels
-        for prompt, solution in zip(
-            hf_dataset["prompt"], hf_dataset["canonical_solution"]
-        ):
-            # Concatenate prompt and solution for the full context
-            full_text = prompt + solution
-            self.examples.append(
-                tokenizer(
-                    full_text,
-                    truncation=True,
-                    padding="max_length",  # Add this line
-                    max_length=block_size,
-                    return_tensors="pt",
-                )
-            )
-
-        self.block_size = block_size
-
-    def __len__(self):
-        return len(self.examples)
-
-    def __getitem__(self, idx):
-        # Here, each item is a dictionary of tensors
-        return {key: val.squeeze(0) for key, val in self.examples[idx].items()}
-
-
-class AlpacaHFDataSet(Dataset):
-    """Alpaca dataset for Hugging Face"""
-
-    def __init__(self, tokenizer, hf_dataset, block_size=600):
-        self.examples = []
-
-        # Iterate through the dataset and prepare the inputs and labels
-        for instruction, output in zip(hf_dataset["instruction"], hf_dataset["output"]):
-            prompt = '"""' + instruction + '"""\n' + output
-            self.examples.append(
-                tokenizer(
-                    prompt,
-                    truncation=True,
-                    padding="max_length",  # Add this line
-                    max_length=block_size,
-                    return_tensors="pt",
-                )
-            )
-
-        self.block_size = block_size
-
-    def __len__(self):
-        return len(self.examples)
-
-    def __getitem__(self, idx):
-        # Here, each item is a dictionary of tensors
-        return {key: val.squeeze(0) for key, val in self.examples[idx].items()}
 
 
 def finetuning(
@@ -81,6 +21,7 @@ def finetuning(
     alpha=1.0,
     layers=4,
     dropout=0.0,
+    lr=1e-4,
 ):
     """Training loop to fine-tune the model"""
     tokenizer, model = load_model(
@@ -103,16 +44,37 @@ def finetuning(
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    if dataset_name == "openai_humaneval":
-        dataset = load_dataset("openai_humaneval", split="test")
-        dataset = HumanEvalHFDataSet(tokenizer, dataset)
-    elif dataset_name == "iamtarun/python_code_instructions_18k_alpaca":
+    if dataset_name == "iamtarun/python_code_instructions_18k_alpaca":
         dataset = load_dataset(
             "iamtarun/python_code_instructions_18k_alpaca", split="train"
         )
-        dataset = AlpacaHFDataSet(tokenizer, dataset)
+
+        def combine_columns(example):
+            return {
+                "prompts": '"""' + example["instruction"] + '"""\n' + example["output"]
+            }
+
+        dataset = dataset.map(combine_columns)
+
+        def preprocess_function(examples):
+            return tokenizer(
+                examples["prompts"],
+                padding="max_length",
+                truncation=True,
+                max_length=512,
+                return_tensors="pt",
+            )
+
+        dataset = dataset.map(
+            preprocess_function, batched=True, remove_columns=dataset.column_names
+        )
     else:
         raise ValueError("Invalid dataset name.")
+
+    def collate_fn(batch):
+        input_ids = [LongTensor(item["input_ids"]) for item in batch]
+        input_ids = nn.utils.rnn.pad_sequence(input_ids, batch_first=True)
+        return {"input_ids": input_ids}
 
     data_loader = DataLoader(
         dataset,
@@ -120,9 +82,12 @@ def finetuning(
         pin_memory=True,
         shuffle=True,
         num_workers=os.cpu_count(),
+        collate_fn=collate_fn,
     )
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=5e-5)
+    learning_rate_sci = format(lr, "e")  # Convert learning rate to scientific notation
+
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
 
     model.train()
     pbar_epochs = tqdm(range(epochs), desc="Epochs")
@@ -148,10 +113,11 @@ def finetuning(
             pbar_batches.set_postfix(
                 {"Loss": loss.item(), "Memory (GB)": allocated_memory()}
             )
+
         # checkpoint model at every epoch
         model_chk_path = (
             f"{models_dir}/codellama_{display_model_name}_r{rank}_a{alpha}_"
-            f"l{layers}_d{dropout}_b{batch_size}_e{epoch}.pt"
+            f"l{layers}_d{dropout}_b{batch_size}_e{epoch}_lr{learning_rate_sci}.pt"
         )
         torch.save(model.state_dict(), model_chk_path)
 
@@ -160,12 +126,13 @@ def finetuning(
     tok = torch_timer()
     model_chk_base = (
         f"codellama_{display_model_name}_r{rank}_a{alpha}_"
-        f"l{layers}_d{dropout}_b{batch_size}_e{epochs}_final"
+        f"l{layers}_d{dropout}_b{batch_size}_e{epochs}_lr{learning_rate_sci}_final"
     )
     model_chk_path = f"{models_dir}/{model_chk_base}.pt"
     torch.save(model.state_dict(), model_chk_path)
 
     # Run inference over the test dataset and log the results
+    torch.cuda.empty_cache()
 
     model.eval()
     accuracy, execption_cnt = dataset_inference(
@@ -173,6 +140,8 @@ def finetuning(
         tokenizer_path,
         "openai_humaneval",
         lora_checkpoint_path=model_chk_path,
+        model=model,
+        tokenizer=tokenizer,
     )
 
     results = {
@@ -188,3 +157,8 @@ def finetuning(
 
     with open(f"logs/{model_chk_base}.json", "w", encoding="utf-8") as f:
         json.dump(results, f, indent=4)
+
+    # Taking extra precation when running with multi-gpu
+    torch.cuda.empty_cache()
+
+    return accuracy

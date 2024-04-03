@@ -45,10 +45,19 @@ def inference(model_path, tokenizer_path, prompt, lora_checkpoint_path=None):
 
 
 def dataset_inference(
-    model_path, tokenizer_path, dataset_name, lora_checkpoint_path=None
+    model_path,
+    tokenizer_path,
+    dataset_name,
+    lora_checkpoint_path=None,
+    model=None,
+    tokenizer=None,
+    temperature=0.0,
+    N=500,
+    instruction_prompt=None,
 ):
     """Run inference on the model over a dataset"""
-    if lora_checkpoint_path:
+    if lora_checkpoint_path and model is None and tokenizer is None:
+        # LOAD INTERMEDIATE
         match = re.search(
             r"_r(\d+)_a(\d+\.\d+)_l(\d+)_d(\d+\.\d+)_b(\d+)_e(\d+)_",
             lora_checkpoint_path,
@@ -71,8 +80,40 @@ def dataset_inference(
                 alpha=alpha,
                 lora_checkpoint_path=lora_checkpoint_path,
             )
+
+        # match = re.search(
+        #     r"codellama_TinyLlama-1.1B-intermediate-step",
+        #     r"-\d+k-3T",
+        #     r"_r(\d+)_a(\d+)_l(\d+)_d([0-9.]+)_b\d+_e\d+_final.pt",
+        #     lora_checkpoint_path,
+        # )
+        match = re.search(
+            r"_r(\d+)_a([0-9.]+)_l(\d+)_d([0-9.]+)_b\d+_e\d+_lr([0-9.e+-]+)_",
+            lora_checkpoint_path,
+        )
+        if match:
+            rank = int(match.group(1))
+            alpha = float(match.group(2))
+            layers = int(match.group(3))
+            dropout = float(match.group(4))
+            # batch_size = int(match.group(5))
+            # epochs = int(match.group(6))
+            # lr = float(match.group(5))
+
+            tokenizer, model = load_model(
+                model_path,
+                tokenizer_path,
+                lora=True,
+                rank=rank,
+                layers=layers,
+                dropout=dropout,
+                alpha=alpha,
+                lora_checkpoint_path=lora_checkpoint_path,
+            )
         else:
-            raise ValueError("Invalid LoRA checkpoint path or invalid file formatting.")
+            raise ValueError(f"Invalid LoRA checkpoint path at {lora_checkpoint_path}")
+    elif model and tokenizer:
+        pass
     else:
         tokenizer, model = load_model(
             model_path,
@@ -85,7 +126,14 @@ def dataset_inference(
     else:
         raise ValueError("Invalid dataset name.")
 
-    return evaluate_code(examples, model=model, tokenizer=tokenizer)
+    return evaluate_code(
+        examples,
+        model=model,
+        tokenizer=tokenizer,
+        temperature=temperature,
+        N=N,
+        instruction_prompt=instruction_prompt,
+    )
 
 
 def autoregressive_sampling(
@@ -93,7 +141,7 @@ def autoregressive_sampling(
     model,
     tokenizer,
     N,
-    temperature=1.0,
+    temperature=0.0,
 ):
     """Autoregressive sampling from the model in inference mode"""
     n = input_ids.shape[1]
@@ -102,7 +150,6 @@ def autoregressive_sampling(
     while n < T:
         outputs = model(input_ids)
         logits = outputs.logits[::, -1, :]
-        # Apply repetition penalty
         p = norm_logits(logits[-1:, :], temperature)
         next_token_id = sample(p, deterministic=True)
         # Add the generated token to the set of generated tokens
@@ -129,7 +176,8 @@ def execute(code_solution, entry_point, test_function):
     signal.signal(signal.SIGALRM, handler)
     signal.alarm(60)
 
-    glob = {}
+    # Override input function to return an empty string
+    glob = {"input": lambda _: ""}
 
     try:
         # WARNING: Using exec; arbitrary code could be executed if not careful
@@ -140,11 +188,10 @@ def execute(code_solution, entry_point, test_function):
         signal.alarm(0)
 
 
-def evaluate_code(dataset, model=None, tokenizer=None):
+def evaluate_code(
+    dataset, model=None, tokenizer=None, temperature=0.0, N=500, instruction_prompt=None
+):
     """Evaluate the code by running it"""
-    instruction_prompt = (
-        """Complete the following Python code without any tests or explanation\n"""
-    )
     passed = 0
     exception_cnt = {}
 
@@ -169,8 +216,8 @@ def evaluate_code(dataset, model=None, tokenizer=None):
                 inputs,
                 model,
                 tokenizer,
-                N=inputs_idx + 250,
-                temperature=0.0,
+                N=N,
+                temperature=temperature,
             )
             tok = torch_timer()
 
