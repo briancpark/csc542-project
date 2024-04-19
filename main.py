@@ -46,7 +46,8 @@ if __name__ == "__main__":
         "--instruction-prompt",
         "-ip",
         type=str,
-        default="Please finish coding the Python script provided below without performing any additional tasks such as testing or writing explanations.\n",
+        default="Please finish coding the Python script provided below without performing \
+            any additional tasks such as testing or writing explanations.\n",
     )
     parser.add_argument("--inference", action="store_true")
     parser.add_argument("--inference-evaluate", action="store_true")
