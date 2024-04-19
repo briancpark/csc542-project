@@ -46,8 +46,8 @@ if __name__ == "__main__":
         "--instruction-prompt",
         "-ip",
         type=str,
-        default="Please complete the following Python code without providing any \
-                          additional tasks such as testing or explanations\n",
+        default="Please finish coding the Python script provided below without performing \
+            any additional tasks such as testing or writing explanations.\n",
     )
     parser.add_argument("--inference", action="store_true")
     parser.add_argument("--inference-evaluate", action="store_true")
@@ -55,9 +55,9 @@ if __name__ == "__main__":
     parser.add_argument("--hyperparameter-tune", action="store_true")
     parser.add_argument("--eda", action="store_true")
     parser.add_argument("--rank", type=int, default=32)
-    parser.add_argument("--alpha", type=float, default=16.0)
-    parser.add_argument("--layers", type=int, default=22)
-    parser.add_argument("--epochs", type=int, default=3)
+    parser.add_argument("--alpha", type=float, default=1.0)
+    parser.add_argument("--layers", type=int, default=4)
+    parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--lr", type=float, default=1e-5)
@@ -100,6 +100,7 @@ if __name__ == "__main__":
             layers=args.layers,
             dropout=args.dropout,
             lr=args.lr,
+            instruction_prompt=args.instruction_prompt,
         )
     elif args.hyperparameter_tune:
         hpo_tune(args.model, args.tokenizer, args.train_dataset)

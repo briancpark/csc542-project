@@ -13,32 +13,18 @@ def inference(model_path, tokenizer_path, prompt, lora_checkpoint_path=None):
     tokenizer, model = load_model(
         model_path, tokenizer_path, lora=True, lora_checkpoint_path=lora_checkpoint_path
     )
-    lora_checkpoint_path = "models/codellama_0.pt"
     # generate text
     inputs = tokenizer(prompt, return_tensors="pt").input_ids.to(device)
 
-    # TODO: (bcp) Add support for all these parameters
-    if lora_checkpoint_path:
-        tik = torch_timer()
-        output = autoregressive_sampling(
-            inputs,
-            model,
-            tokenizer,
-            N=150,
-            temperature=0.0,
-        )
-        tok = torch_timer()
-    else:
-        tik = torch_timer()
-        output = model.generate(
-            inputs,
-            do_sample=False,
-            temperature=0.0,
-            max_length=150,
-            pad_token_id=tokenizer.eos_token_id,
-            num_return_sequences=1,
-        )
-        tok = torch_timer()
+    tik = torch_timer()
+    output = autoregressive_sampling(
+        inputs,
+        model,
+        tokenizer,
+        N=500,
+        temperature=0.0,
+    )
+    tok = torch_timer()
     print(tokenizer.decode(output[0], skip_special_tokens=False))
     print(f"Time taken: {tok - tik:.3f} seconds")
     print(f"Tok/s: {output.shape[1] / (tok - tik):.3f}")
