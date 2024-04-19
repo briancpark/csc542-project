@@ -22,6 +22,7 @@ def finetuning(
     layers=4,
     dropout=0.0,
     lr=1e-4,
+    instruction_prompt=None,
 ):
     """Training loop to fine-tune the model"""
     tokenizer, model = load_model(
@@ -142,6 +143,7 @@ def finetuning(
         lora_checkpoint_path=model_chk_path,
         model=model,
         tokenizer=tokenizer,
+        instruction_prompt=instruction_prompt,
     )
 
     results = {

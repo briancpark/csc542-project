@@ -3,7 +3,7 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --tasks-per-node=1
 #SBATCH -p max
-#SBATCH -w c[21]
+#SBATCH -w c[20]
 #SBATCH -J lora-tune
 #SBATCH -o lora-tune.o%j
 #SBATCH -e lora-tune.e%j
@@ -12,4 +12,4 @@ source ~/.bashrc
 conda activate csc542
 cd /home/bcpark/csc542-project
 
-python3 main.py --finetuning
+python3 main.py --finetuning 
